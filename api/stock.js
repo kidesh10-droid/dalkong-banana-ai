@@ -101,6 +101,17 @@ module.exports = async function handler(req, res) {
       return res.status(200).json(await sj(r));
     }
 
+    // KIS 호가 조회
+    if (action === 'hoga') {
+      const { token, ticker, mode } = req.body;
+      const c = mode==='real' ? KIS_REAL : KIS_MOCK;
+      const r = await fetch(
+        `${c.base}/uapi/domestic-stock/v1/quotations/inquire-asking-price-exp-ccn?fid_cond_mrkt_div_code=J&fid_input_iscd=${ticker}`,
+        { headers:{'content-type':'application/json','authorization':`Bearer ${token}`,'appkey':c.key,'appsecret':c.secret,'tr_id':'FHKST01010200'} }
+      );
+      return res.status(200).json(await sj(r));
+    }
+
     // 국내 매수
     if (action === 'buy_kr') {
       const { token, ticker, price, qty, orderType, mode, accountNo, accountProduct } = req.body;
