@@ -101,6 +101,25 @@ module.exports = async function handler(req, res) {
       return res.status(200).json(await sj(r));
     }
 
+    // 계좌 정보 조회 (계좌번호/상품코드 확인용)
+    if (action === 'account_info') {
+      const { token, mode } = req.body;
+      const c = mode==='real' ? KIS_REAL : KIS_MOCK;
+      const tr = mode==='real' ? 'TTTC8908R' : 'VTTC8908R';
+      // 계좌 잔고 조회로 실제 계좌번호/상품코드 확인
+      // 먼저 토큰 정보에서 계좌번호 추출 시도
+      try {
+        // KIS 포털 계좌목록 조회
+        const r = await fetch(`${c.base}/uapi/domestic-stock/v1/trading/inquire-psbl-order?CANO=&ACNT_PRDT_CD=01&PDNO=005930&ORD_UNPR=0&ORD_DVSN=01&CMA_EVLU_AMT_ICLD_YN=N&OVRS_ICLD_YN=N`,
+          { headers:{'content-type':'application/json','authorization':`Bearer ${token}`,'appkey':c.key,'appsecret':c.secret,'tr_id':mode==='real'?'TTTC8908R':'VTTC8908R'} }
+        );
+        const d = await sj(r);
+        return res.status(200).json({ msg: d.msg1||'', rt_cd: d.rt_cd, output: d.output });
+      } catch(e) {
+        return res.status(200).json({ error: e.message });
+      }
+    }
+
     // KIS 호가 조회
     if (action === 'hoga') {
       const { token, ticker, mode } = req.body;
@@ -115,16 +134,51 @@ module.exports = async function handler(req, res) {
     // 국내 매수
     if (action === 'buy_kr') {
       const { token, ticker, price, qty, orderType, mode, accountNo, accountProduct } = req.body;
+      console.log('BUY_KR 요청:', { ticker, price, qty, mode, accountNo, accountProduct });
       const c = mode==='real' ? KIS_REAL : KIS_MOCK;
-      const r = await fetch(`${c.base}/uapi/domestic-stock/v1/trading/order-cash`, { method:'POST', headers:{'content-type':'application/json','authorization':`Bearer ${token}`,'appkey':c.key,'appsecret':c.secret,'tr_id':mode==='real'?'TTTC0802U':'VTTC0802U'}, body: JSON.stringify({ CANO:accountNo, ACNT_PRDT_CD:accountProduct||'01', PDNO:ticker, ORD_DVSN:orderType||'00', ORD_QTY:String(qty), ORD_UNPR:String(price) }) });
-      return res.status(200).json(await sj(r));
+      if(!accountNo||accountNo.length<6){
+        return res.status(200).json({ rt_cd:'1', msg1:`계좌번호 오류: "${accountNo}" - 8자리 계좌번호를 확인해주세요` });
+      }
+      const orderBody = { 
+        CANO: accountNo.trim(), 
+        ACNT_PRDT_CD: (accountProduct||'01').trim(), 
+        PDNO: ticker, 
+        ORD_DVSN: orderType||'00', 
+        ORD_QTY: String(qty), 
+        ORD_UNPR: String(price) 
+      };
+      console.log('KIS 주문 바디:', JSON.stringify(orderBody));
+      const r = await fetch(`${c.base}/uapi/domestic-stock/v1/trading/order-cash`, { 
+        method:'POST', 
+        headers:{'content-type':'application/json','authorization':`Bearer ${token}`,'appkey':c.key,'appsecret':c.secret,'tr_id':mode==='real'?'TTTC0802U':'VTTC0802U'}, 
+        body: JSON.stringify(orderBody)
+      });
+      const result = await sj(r);
+      console.log('KIS 응답:', JSON.stringify(result).slice(0,200));
+      return res.status(200).json(result);
     }
 
     // 국내 매도
     if (action === 'sell_kr') {
       const { token, ticker, price, qty, orderType, mode, accountNo, accountProduct } = req.body;
+      console.log('SELL_KR 요청:', { ticker, price, qty, mode, accountNo, accountProduct });
       const c = mode==='real' ? KIS_REAL : KIS_MOCK;
-      const r = await fetch(`${c.base}/uapi/domestic-stock/v1/trading/order-cash`, { method:'POST', headers:{'content-type':'application/json','authorization':`Bearer ${token}`,'appkey':c.key,'appsecret':c.secret,'tr_id':mode==='real'?'TTTC0801U':'VTTC0801U'}, body: JSON.stringify({ CANO:accountNo, ACNT_PRDT_CD:accountProduct||'01', PDNO:ticker, ORD_DVSN:orderType||'00', ORD_QTY:String(qty), ORD_UNPR:String(price) }) });
+      if(!accountNo||accountNo.length<6){
+        return res.status(200).json({ rt_cd:'1', msg1:`계좌번호 오류: "${accountNo}" - 8자리 계좌번호를 확인해주세요` });
+      }
+      const orderBody = { 
+        CANO: accountNo.trim(), 
+        ACNT_PRDT_CD: (accountProduct||'01').trim(), 
+        PDNO: ticker, 
+        ORD_DVSN: orderType||'00', 
+        ORD_QTY: String(qty), 
+        ORD_UNPR: String(price) 
+      };
+      const r = await fetch(`${c.base}/uapi/domestic-stock/v1/trading/order-cash`, { 
+        method:'POST', 
+        headers:{'content-type':'application/json','authorization':`Bearer ${token}`,'appkey':c.key,'appsecret':c.secret,'tr_id':mode==='real'?'TTTC0801U':'VTTC0801U'}, 
+        body: JSON.stringify(orderBody)
+      });
       return res.status(200).json(await sj(r));
     }
 
