@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -1249,7 +1250,7 @@ async function refreshAutoPrice(){
 }
 
 // KIS 호가 조회
-async async function loadHoga(){
+async function loadHoga(){
   // 가격 없으면 먼저 패스
   if(!autoPrice||autoPrice<=0){
     document.getElementById('hogaTable').innerHTML='<div style="padding:12px;text-align:center;font-size:10px;color:var(--mu);">종목을 조회하세요</div>';
