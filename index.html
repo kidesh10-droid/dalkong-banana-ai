@@ -620,11 +620,15 @@
         addMsg('ai', `❌ 오류가 발생했어요: ${errMsg}\n\nAPI 키를 확인하거나 모델을 Flash로 변경해보세요.`);
         history.pop();
       } else {
-        const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || '응답을 받지 못했어요.';
-        addMsg('ai', reply);
-        history.push({ role: 'model', parts: [{ text: reply }] });
-        // 히스토리 20개 제한
-        if (history.length > 40) history = history.slice(-40);
+        // reply 필드 우선, 없으면 candidates에서 추출
+        const reply = data.reply || data.candidates?.[0]?.content?.parts?.[0]?.text || JSON.stringify(data).slice(0, 200);
+        if (!reply || reply === 'undefined') {
+          addMsg('ai', `⚠️ 응답 구조 오류\n\n${JSON.stringify(data).slice(0, 300)}`);
+        } else {
+          addMsg('ai', reply);
+          history.push({ role: 'model', parts: [{ text: reply }] });
+          if (history.length > 40) history = history.slice(-40);
+        }
       }
     } catch (err) {
       removeTyping(typingId);
