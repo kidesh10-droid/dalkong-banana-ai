@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>달콩이의 바나나 AI — 프로젝트 플랜</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --banana: #FFE135;
+    --banana-dark: #E6C800;
+    --banana-light: #FFF5A0;
+    --bg: #0D0D0D;
+    --bg2: #141414;
+    --bg3: #1C1C1C;
+    --surface: #222222;
+    --border: #2E2E2E;
+    --text: #F5F5F0;
+    --text-muted: #888;
+    --gemini: #4285F4;
+    --naver: #03C75A;
+    --stock: #FF6B35;
+    --work: #B57BFF;
+    --radius: 16px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* NOISE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 0; opacity: 0.4;
+  }
+
+  /* HERO */
+  .hero {
+    position: relative;
+    padding: 60px 40px 40px;
+    display: flex;
+    align-items: flex-start;
+    gap: 40px;
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .hero-bg {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 60% 80% at 80% 50%, rgba(255,225,53,0.07) 0%, transparent 70%);
+  }
+
+  .banana-logo {
+    font-size: 80px;
+    line-height: 1;
+    filter: drop-shadow(0 0 40px rgba(255,225,53,0.5));
+    animation: float 3s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .hero-text { position: relative; z-index: 1; }
+
+  .project-tag {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--banana);
+    background: rgba(255,225,53,0.1);
+    border: 1px solid rgba(255,225,53,0.3);
+    padding: 4px 12px;
+    border-radius: 100px;
+    margin-bottom: 16px;
+  }
+
+  h1 {
+    font-size: clamp(32px, 5vw, 56px);
+    font-weight: 900;
+    line-height: 1.1;
+    letter-spacing: -1px;
+    margin-bottom: 12px;
+  }
+
+  h1 span { color: var(--banana); }
+
+  .hero-sub {
+    font-size: 15px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    max-width: 500px;
+    margin-bottom: 24px;
+  }
+
+  .stack-badges {
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+
+  .badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+
+  .badge.highlight { color: var(--banana); border-color: rgba(255,225,53,0.3); background: rgba(255,225,53,0.06); }
+
+  /* STATS BAR */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .stat {
+    padding: 24px 32px;
+    border-right: 1px solid var(--border);
+  }
+  .stat:last-child { border-right: none; }
+
+  .stat-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--banana);
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+  }
+
+  /* MAIN GRID */
+  .main {
+    padding: 40px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    position: relative; z-index: 1;
+  }
+
+  .module {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color 0.3s, transform 0.2s;
+  }
+
+  .module:hover {
+    transform: translateY(-2px);
+    border-color: var(--border);
+  }
+
+  .module.full { grid-column: 1 / -1; }
+
+  .module-header {
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .mod-icon {
+    width: 42px; height: 42px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .mod-icon.gemini { background: rgba(66,133,244,0.15); }
+  .mod-icon.naver { background: rgba(3,199,90,0.15); }
+  .mod-icon.stock { background: rgba(255,107,53,0.15); }
+  .mod-icon.work { background: rgba(181,123,255,0.15); }
+  .mod-icon.infra { background: rgba(255,225,53,0.12); }
+
+  .mod-title { font-size: 16px; font-weight: 700; }
+  .mod-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  .mod-status {
+    margin-left: auto;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 100px;
+    border: 1px solid;
+  }
+
+  .mod-status.plan { color: #888; border-color: #333; }
+  .mod-status.active { color: var(--naver); border-color: rgba(3,199,90,0.4); }
+  .mod-status.build { color: var(--banana); border-color: rgba(255,225,53,0.4); }
+
+  .module-body { padding: 20px 24px; }
+
+  /* FEATURE LIST */
+  .feature-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+
+  .feature-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .feature-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    margin-top: 6px;
+    flex-shrink: 0;
+  }
+
+  .dot-gemini { background: var(--gemini); }
+  .dot-naver { background: var(--naver); }
+  .dot-stock { background: var(--stock); }
+  .dot-work { background: var(--work); }
+  .dot-banana { background: var(--banana); }
+
+  .feature-text { color: #CCC; }
+  .feature-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  /* DIVIDER */
+  .mod-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 16px 0;
+  }
+
+  /* TECH STACK */
+  .tech-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .tech-item {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .tech-role { font-size: 10px; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; }
+  .tech-name { font-size: 13px; font-weight: 600; font-family: 'Space Mono', monospace; }
+  .tech-name.c-banana { color: var(--banana); }
+  .tech-name.c-gemini { color: var(--gemini); }
+  .tech-name.c-naver { color: var(--naver); }
+  .tech-name.c-stock { color: var(--stock); }
+  .tech-name.c-work { color: var(--work); }
+
+  /* ROADMAP */
+  .roadmap {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: relative;
+  }
+
+  .roadmap::before {
+    content: '';
+    position: absolute;
+    left: 19px; top: 0; bottom: 0;
+    width: 1px;
+    background: linear-gradient(to bottom, var(--banana), var(--stock), transparent);
+    opacity: 0.3;
+  }
+
+  .road-phase {
+    display: flex;
+    gap: 20px;
+    padding: 14px 0;
+    position: relative;
+  }
+
+  .road-dot {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+    border: 2px solid;
+    position: relative; z-index: 1;
+  }
+
+  .road-dot.done { background: rgba(255,225,53,0.15); border-color: var(--banana); color: var(--banana); }
+  .road-dot.active { background: rgba(3,199,90,0.15); border-color: var(--naver); color: var(--naver); }
+  .road-dot.next { background: rgba(255,107,53,0.1); border-color: var(--stock); color: var(--stock); }
+  .road-dot.future { background: var(--bg3); border-color: var(--border); color: var(--text-muted); }
+
+  .road-content { padding-top: 6px; }
+  .road-phase-name { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .road-items { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+
+  /* ARCHITECTURE */
+  .arch-flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow-x: auto;
+    padding: 10px 0;
+  }
+
+  .arch-node {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    text-align: center;
+    flex-shrink: 0;
+    min-width: 100px;
+  }
+
+  .arch-node-icon { font-size: 22px; display: block; margin-bottom: 6px; }
+  .arch-node-name { font-size: 12px; font-weight: 600; }
+  .arch-node-sub { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+  .arch-arrow {
+    font-size: 16px;
+    color: var(--text-muted);
+    padding: 0 8px;
+    flex-shrink: 0;
+  }
+
+  .arch-node.highlight-y { border-color: rgba(255,225,53,0.4); background: rgba(255,225,53,0.06); }
+  .arch-node.highlight-g { border-color: rgba(66,133,244,0.4); background: rgba(66,133,244,0.06); }
+  .arch-node.highlight-n { border-color: rgba(3,199,90,0.4); background: rgba(3,199,90,0.06); }
+
+  /* AUTOMATION TABLE */
+  .auto-table { width: 100%; border-collapse: collapse; }
+  .auto-table th {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .auto-table td {
+    font-size: 12px;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(46,46,46,0.5);
+    vertical-align: middle;
+  }
+  .auto-table tr:last-child td { border-bottom: none; }
+
+  .pill {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .pill-g { background: rgba(3,199,90,0.15); color: var(--naver); }
+  .pill-y { background: rgba(255,225,53,0.12); color: var(--banana); }
+  .pill-o { background: rgba(255,107,53,0.12); color: var(--stock); }
+  .pill-p { background: rgba(181,123,255,0.12); color: var(--work); }
+
+  /* FOOTER */
+  .footer {
+    padding: 24px 40px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative; z-index: 1;
+  }
+
+  .footer-left { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-muted); }
+  .footer-right { display: flex; gap: 12px; align-items: center; }
+
+  .deploy-badge {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    color: var(--text-muted);
+  }
+
+  .deploy-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--naver);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    .main { grid-template-columns: 1fr; padding: 20px; }
+    .module.full { grid-column: 1; }
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+    .hero { padding: 30px 20px; flex-direction: column; gap: 16px; }
+    .banana-logo { font-size: 50px; }
+    .footer { flex-direction: column; gap: 16px; align-items: flex-start; padding: 20px; }
+    .tech-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* ENTRANCE ANIMATION */
+  .module { opacity: 0; animation: fadeUp 0.5s forwards; }
+  .module:nth-child(1) { animation-delay: 0.1s; }
+  .module:nth-child(2) { animation-delay: 0.2s; }
+  .module:nth-child(3) { animation-delay: 0.3s; }
+  .module:nth-child(4) { animation-delay: 0.4s; }
+  .module:nth-child(5) { animation-delay: 0.5s; }
+  .module:nth-child(6) { animation-delay: 0.6s; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="banana-logo">🍌</div>
+  <div class="hero-text">
+    <div class="project-tag">PROJECT DALKONG · v1.0 PLAN</div>
+    <h1>달콩이의<br><span>바나나 AI</span></h1>
+    <p class="hero-sub">
+      나만의 올인원 AI 비서 플랫폼 — 제미나이 연동, 네이버 블로그 자동화, 주식 분석, 업무 자동화를 하나의 대시보드에서.
+      베셀(Vessel) 기반 배포, 완전 자동화 목적 설계.
+    </p>
+    <div class="stack-badges">
+      <span class="badge highlight">Next.js / Vercel</span>
+      <span class="badge highlight">Google Gemini</span>
+      <span class="badge highlight">Naver API</span>
+      <span class="badge">Yahoo Finance</span>
+      <span class="badge">GitHub CI/CD</span>
+      <span class="badge">베셀(Vessel)</span>
+    </div>
+  </div>
+</section>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stat">
+    <span class="stat-num">4</span>
+    <span class="stat-label">핵심 모듈</span>
+  </div>
+  <div class="stat">
+    <span class="stat-num">100%</span>
+    <span class="stat-label">자동화 목표</span>
+  </div>
+  <div class="stat">
+    <span class="stat-num">1</span>
+    <span class="stat-label">통합 배포 플랫폼</span>
+  </div>
+  <div class="stat">
+    <span class="stat-num">∞</span>
+    <span class="stat-label">확장 가능성</span>
+  </div>
+</div>
+
+<!-- MAIN GRID -->
+<div class="main">
+
+  <!-- MODULE 1: GEMINI -->
+  <div class="module">
+    <div class="module-header">
+      <div class="mod-icon gemini">🤖</div>
+      <div>
+        <div class="mod-title">달콩이 전용 제미나이</div>
+        <div class="mod-subtitle">Module 01 — AI 질문·답변</div>
+      </div>
+      <span class="mod-status build">BUILD</span>
+    </div>
+    <div class="module-body">
+      <ul class="feature-list">
+        <li class="feature-item">
+          <span class="feature-dot dot-gemini"></span>
+          <div>
+            <div class="feature-text">달콩이 전용 시스템 프롬프트 설정</div>
+            <div class="feature-sub">캐릭터·톤·역할 커스터마이징</div>
+          </div>
+        </li>
+        <li class="feature-item">
+          <span class="feature-dot dot-gemini"></span>
+          <div>
+            <div class="feature-text">대화 히스토리 관리 (멀티턴)</div>
+            <div class="feature-sub">세션별 컨텍스트 유지</div>
+          </div>
+        </li>
+        <li class="feature-item">
+          <span class="feature-dot dot-gemini"></span>
+          <div>
+            <div class="feature-text">Gemini 1.5 Pro / Flash 선택</div>
+            <div class="feature-sub">쿼터 한도 대응 — Flash 폴백 구조</div>
+          </div>
+        </li>
+        <li class="feature-item">
+          <span class="feature-dot dot-gemini"></span>
+          <div>
+            <div class="feature-text">전용 페이지 내 독립 실행</div>
+            <div class="feature-sub">다른 모듈과 사이드바 통합</div>
+          </div>
+        </li>
+      </ul>
+      <div class="mod-divider"></div>
+      <div style="font-size:11px; color: var(--text-muted);">⚠️ Gemini API 쿼터 이슈 → Flash 우선 + 캐싱 전략 필요</div>
+    </div>
+  </div>
+
+  <!-- MODULE 2: NAVER BLOG -->
+  <div class="module">
+    <div class="module-header">
+      <div class="mod-icon naver">📝</div>
+      <div>
+        <div class="mod-title">네이버 블로그 자동화</div>
+        <div class="mod-subtitle">Module 02 — 작성 & 자동 업로드</div>
+      </div>
+      <span class="mod-status plan">PLAN</span>
+    </div>
+    <div class="module-body">
+      <ul class="feature-list">
+        <li class="feature-item">
+          <span class="feature-dot dot-naver"></span>
+          <div>
+            <div class="feature-text">AI 블로그 글 자동 생성</div>
+            <div class="feature-sub">Gemini로 제목·본문·태그 일괄 생성</div>
+          </div>
+        </li>
+        <li class="feature-item">
+          <span class="feature-dot dot-naver"></span>
+          <div>
+            <div class="feature-text">네이버 계정 연동 자동 업로드</div>
+            <div class="feature-sub">Naver Blog API / Playwright 자동화</div>
+          </div>
+        </li>
+        <li class="feature-item">
+          <span class="feature-dot dot-naver"></span>
+          <div>
+            <div class="feature-text">스케줄링 자동 발행</div>
+            <div class="feature-sub">크론 잡 기반 예약 포스팅</div>
+          </div>
+        </li>
+        <li class="feature-item">
+          <span class="feature-dot dot-naver"></span>
+          <div>
+            <div class="feature-text">SEO 최적화 키워드 삽입</div>
+            <div class="feature-sub">네이버 쇼핑 분석 Pro 연동</div>
+          </div>
+        </li>
+      </ul>
+      <div class="mod-divider"></div>
+      <div style="font-size:11px; color: var(--text-muted);">📌 네이버 Open API 계정 연동 키 발급 필요</div>
+    </div>
+  </div>
+
+  <!-- MODULE 3: STOCK -->
+  <div class="module">
+    <div class="module-header">
+      <div class="mod-icon stock">📈</div>
+      <div>
+        <div class="mod-title">주식 시황 & 자동 매매</div>
+        <div class="mod-subtitle">Module 03 — 분석·목표가·자동화</div>
+      </div>
+      <span class="mod-status build">BUILD</span>
+    </div>
+    <div class="module-body">
+      <ul class="feature-list">
+        <li class="feature-item">
+          <span class="feature-dot dot-stock"></span>
+          <div>
+            <div class="feature-text">한국·미국 주식 실시간 시황</div>
+            <div class="feature-sub">Yahoo Finance + 네이버 증권 API</div>
+          </div>
+        </li>
+        <li class="feature-item">
+          <span class="feature-dot dot-stock"></span>
+          <div>
+            <div class="feature-text">AI 매수·매도 목표가 분석</div>
+            <div class="feature-sub">단기(1-2주) / 중기(1-3개월) / 장기(6개월+)</div>
+          </div>
+        </li>
+        <li class="feature-item">
+          <span class="feature-dot dot-stock"></span>
+          <div>
+            <div class="feature-text">차트 기술적 분석 자동화</div>
+            <div class="feature-sub">이동평균, RSI, MACD AI 해석</div>
+          </div>
+        </li>
+        <li class="feature-item">
+          <span class="feature-dot dot-stock"></span>
+          <div>
+            <div class="feature-text">증권사 API 자동 매수·매도 연동</div>
+            <div class="feature-sub">한국투자증권 / 키움 Open API (실투자)</div>
+          </div>
+        </li>
+      </ul>
+      <div class="mod-divider"></div>
+      <div style="font-size:11px; color: #FF6B35;">🔴 실투자 연동 — 증권사 모의투자 먼저 검증 필수</div>
+    </div>
+  </div>
+
+  <!-- MODULE 4: WORK -->
+  <div class="module">
+    <div class="module-header">
+      <div class="mod-icon work">⚙️</div>
+      <div>
+        <div class="mod-title">업무 자동화 & 분석</div>
+        <div class="mod-subtitle">Module 04 — 마케팅·광고·키워드</div>
+      </div>
+      <span class="mod-status active">ACTIVE</span>
+    </div>
+    <div class="module-body">
+      <ul class="feature-list">
+        <li class="feature-item">
+          <span class="feature-dot dot-work"></span>
+          <div>
+            <div class="feature-text">네이버 키워드 분석 탑재</div>
+            <div class="feature-sub">네이버 쇼핑 분석 Pro 기능 통합</div>
+          </div>
+        </li>
+        <li class="feature-item">
+          <span class="feature-dot dot-work"></span>
+          <div>
+            <div class="feature-text">광고 성과 자동 분석 리포트</div>
+            <div class="feature-sub">ROAS·전환율·순이익 자동 계산</div>
+          </div>
+        </li>
+        <li class="feature-item">
+          <span class="feature-dot dot-work"></span>
+          <div>
+            <div class="feature-text">Coupang·Naver 광고 시뮬레이션</div>
+            <div class="feature-sub">실제 CPC 데이터 기반 예산 최적화</div>
+          </div>
+        </li>
+        <li class="feature-item">
+          <span class="feature-dot dot-work"></span>
+          <div>
+            <div class="feature-text">AI 상품명 SEO 자동 생성</div>
+            <div class="feature-sub">키워드 조합 → 최적 상품명 추천</div>
+          </div>
+        </li>
+      </ul>
+      <div class="mod-divider"></div>
+      <div style="font-size:11px; color: var(--work);">✅ 네이버 쇼핑 분석 Pro 기존 코드 재활용 가능</div>
+    </div>
+  </div>
+
+  <!-- ARCHITECTURE (FULL WIDTH) -->
+  <div class="module full">
+    <div class="module-header">
+      <div class="mod-icon infra">🏗️</div>
+      <div>
+        <div class="mod-title">시스템 아키텍처</div>
+        <div class="mod-subtitle">배포 구조 — 베셀(Vessel) 기반</div>
+      </div>
+      <span class="mod-status build">INFRA</span>
+    </div>
+    <div class="module-body">
+      <div class="arch-flow">
+        <div class="arch-node highlight-y">
+          <span class="arch-node-icon">🍌</span>
+          <div class="arch-node-name">달콩이 UI</div>
+          <div class="arch-node-sub">Next.js Frontend</div>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node highlight-y">
+          <span class="arch-node-icon">🚢</span>
+          <div class="arch-node-name">베셀(Vessel)</div>
+          <div class="arch-node-sub">GitHub 배포</div>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node">
+          <span class="arch-node-icon">▲</span>
+          <div class="arch-node-name">Vercel</div>
+          <div class="arch-node-sub">Serverless</div>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node highlight-g">
+          <span class="arch-node-icon">🤖</span>
+          <div class="arch-node-name">Gemini API</div>
+          <div class="arch-node-sub">AI 엔진</div>
+        </div>
+        <div class="arch-arrow">+</div>
+        <div class="arch-node highlight-n">
+          <span class="arch-node-icon">N</span>
+          <div class="arch-node-name">Naver API</div>
+          <div class="arch-node-sub">블로그·키워드</div>
+        </div>
+        <div class="arch-arrow">+</div>
+        <div class="arch-node">
+          <span class="arch-node-icon">📊</span>
+          <div class="arch-node-name">Yahoo Finance</div>
+          <div class="arch-node-sub">주식 데이터</div>
+        </div>
+        <div class="arch-arrow">+</div>
+        <div class="arch-node">
+          <span class="arch-node-icon">🏦</span>
+          <div class="arch-node-name">증권사 API</div>
+          <div class="arch-node-sub">자동 매매</div>
+        </div>
+      </div>
+
+      <div class="mod-divider"></div>
+
+      <div class="tech-grid">
+        <div class="tech-item">
+          <span class="tech-role">FRONTEND</span>
+          <span class="tech-name c-banana">Next.js 14</span>
+        </div>
+        <div class="tech-item">
+          <span class="tech-role">AI ENGINE</span>
+          <span class="tech-name c-gemini">Gemini 1.5</span>
+        </div>
+        <div class="tech-item">
+          <span class="tech-role">DEPLOY</span>
+          <span class="tech-name c-banana">Vercel + 베셀</span>
+        </div>
+        <div class="tech-item">
+          <span class="tech-role">BLOG AUTO</span>
+          <span class="tech-name c-naver">Naver API</span>
+        </div>
+        <div class="tech-item">
+          <span class="tech-role">STOCK DATA</span>
+          <span class="tech-name c-stock">Yahoo Finance</span>
+        </div>
+        <div class="tech-item">
+          <span class="tech-role">AUTO TRADE</span>
+          <span class="tech-name c-work">KIS Open API</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROADMAP -->
+  <div class="module">
+    <div class="module-header">
+      <div class="mod-icon infra">🗺️</div>
+      <div>
+        <div class="mod-title">개발 로드맵</div>
+        <div class="mod-subtitle">단계별 빌드 계획</div>
+      </div>
+    </div>
+    <div class="module-body">
+      <div class="roadmap">
+        <div class="road-phase">
+          <div class="road-dot done">P1</div>
+          <div class="road-content">
+            <div class="road-phase-name">Phase 1 — 기반 구축</div>
+            <div class="road-items">베셀 GitHub 연동 · Gemini 채팅 UI · 기본 레이아웃</div>
+          </div>
+        </div>
+        <div class="road-phase">
+          <div class="road-dot active">P2</div>
+          <div class="road-content">
+            <div class="road-phase-name">Phase 2 — 주식 모듈</div>
+            <div class="road-items">시황 대시보드 · AI 목표가 분석 · 차트 연동</div>
+          </div>
+        </div>
+        <div class="road-phase">
+          <div class="road-dot next">P3</div>
+          <div class="road-content">
+            <div class="road-phase-name">Phase 3 — 업무 자동화</div>
+            <div class="road-items">키워드 분석 통합 · 광고 리포트 · SEO 생성기</div>
+          </div>
+        </div>
+        <div class="road-phase">
+          <div class="road-dot future">P4</div>
+          <div class="road-content">
+            <div class="road-phase-name">Phase 4 — 블로그 자동화</div>
+            <div class="road-items">Naver 계정 연동 · 자동 포스팅 · 스케줄러</div>
+          </div>
+        </div>
+        <div class="road-phase">
+          <div class="road-dot future">P5</div>
+          <div class="road-content">
+            <div class="road-phase-name">Phase 5 — 자동 매매</div>
+            <div class="road-items">증권사 API 연동 · 모의투자 검증 · 실투자 전환</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AUTOMATION MATRIX -->
+  <div class="module">
+    <div class="module-header">
+      <div class="mod-icon infra">🔄</div>
+      <div>
+        <div class="mod-title">자동화 매트릭스</div>
+        <div class="mod-subtitle">기능별 자동화 수준</div>
+      </div>
+    </div>
+    <div class="module-body">
+      <table class="auto-table">
+        <thead>
+          <tr>
+            <th>기능</th>
+            <th>자동화 수준</th>
+            <th>우선순위</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>AI 답변 (제미나이)</td>
+            <td><span class="pill pill-g">완전 자동</span></td>
+            <td><span class="pill pill-y">HIGH</span></td>
+          </tr>
+          <tr>
+            <td>블로그 글 생성</td>
+            <td><span class="pill pill-g">완전 자동</span></td>
+            <td><span class="pill pill-y">HIGH</span></td>
+          </tr>
+          <tr>
+            <td>블로그 업로드</td>
+            <td><span class="pill pill-y">스케줄 자동</span></td>
+            <td><span class="pill pill-o">MED</span></td>
+          </tr>
+          <tr>
+            <td>주식 시황 수집</td>
+            <td><span class="pill pill-g">완전 자동</span></td>
+            <td><span class="pill pill-y">HIGH</span></td>
+          </tr>
+          <tr>
+            <td>AI 목표가 분석</td>
+            <td><span class="pill pill-y">트리거 자동</span></td>
+            <td><span class="pill pill-y">HIGH</span></td>
+          </tr>
+          <tr>
+            <td>자동 매수·매도</td>
+            <td><span class="pill pill-o">조건 자동</span></td>
+            <td><span class="pill pill-p">검증 후</span></td>
+          </tr>
+          <tr>
+            <td>광고 분석 리포트</td>
+            <td><span class="pill pill-y">스케줄 자동</span></td>
+            <td><span class="pill pill-o">MED</span></td>
+          </tr>
+          <tr>
+            <td>키워드 랭킹 추적</td>
+            <td><span class="pill pill-g">완전 자동</span></td>
+            <td><span class="pill pill-o">MED</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-left">
+    달콩이의 바나나 AI · PROJECT PLAN · 2026<br>
+    github → vessel → vercel
+  </div>
+  <div class="footer-right">
+    <div class="deploy-badge">
+      <div class="deploy-dot"></div>
+      베셀 배포 예정
+    </div>
+    <div class="deploy-badge">
+      🍌 달콩이 v1.0
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
