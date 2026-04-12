@@ -21,6 +21,39 @@ module.exports = async function handler(req, res) {
       const r = await fetch(`${cfg.base}/uapi/domestic-stock/v1/quotations/inquire-price?fid_cond_mrkt_div_code=J&fid_input_iscd=${ticker}`, { headers: { 'content-type': 'application/json', 'authorization': `Bearer ${token}`, 'appkey': cfg.key, 'appsecret': cfg.secret, 'tr_id': 'FHKST01010100' } });
       return res.status(200).json(await r.json());
     }
+    // 코스피/코스닥/환율/비트코인
+    if (action === 'market_kr') {
+      try {
+        const results = await Promise.all([
+          // 코스피
+          fetch('https://query1.finance.yahoo.com/v8/finance/chart/%5EKS11?interval=1d&range=1d').then(r=>r.json()).then(d=>{
+            const m=d?.chart?.result?.[0]?.meta;
+            return {type:'kospi',price:m?.regularMarketPrice,prev:m?.previousClose,chg:m?.regularMarketChangePercent};
+          }).catch(()=>({type:'kospi',error:true})),
+          // 코스닥
+          fetch('https://query1.finance.yahoo.com/v8/finance/chart/%5EKQ11?interval=1d&range=1d').then(r=>r.json()).then(d=>{
+            const m=d?.chart?.result?.[0]?.meta;
+            return {type:'kosdaq',price:m?.regularMarketPrice,prev:m?.previousClose,chg:m?.regularMarketChangePercent};
+          }).catch(()=>({type:'kosdaq',error:true})),
+          // USD/KRW 환율
+          fetch('https://query1.finance.yahoo.com/v8/finance/chart/KRW%3DX?interval=1d&range=1d').then(r=>r.json()).then(d=>{
+            const m=d?.chart?.result?.[0]?.meta;
+            return {type:'usdkrw',price:m?.regularMarketPrice,chg:m?.regularMarketChangePercent};
+          }).catch(()=>({type:'usdkrw',error:true})),
+          // 비트코인 (KRW)
+          fetch('https://query1.finance.yahoo.com/v8/finance/chart/BTC-KRW?interval=1d&range=1d').then(r=>r.json()).then(d=>{
+            const m=d?.chart?.result?.[0]?.meta;
+            return {type:'btc',price:m?.regularMarketPrice,chg:m?.regularMarketChangePercent};
+          }).catch(()=>({type:'btc',error:true})),
+        ]);
+        const out = {};
+        results.forEach(r => { if(!r.error) out[r.type] = r; });
+        return res.status(200).json(out);
+      } catch(e) {
+        return res.status(200).json({ error: e.message });
+      }
+    }
+
     // 야후 파이낸스 미국 시황
     if (action === 'market_us') {
       const symbols = ['%5EGSPC', '%5EIXIC', '%5EDJI', 'AAPL', 'TSLA', 'NVDA', 'MSFT', 'AMZN'];
