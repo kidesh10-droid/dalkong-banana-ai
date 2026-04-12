@@ -741,11 +741,12 @@ const US=[
 const SYS=`당신은 '달콩이'입니다. 마초킹님의 전용 AI 비서예요.
 성격: 친근하고 실용적. 이모지 적절히 사용. 한국어 답변.
 주인: 마초킹 (한국 이커머스 전문가, Fifine AM8 마이크/SoundPEATS T3 Pro 이어폰 유통)
-【중요 규칙】
-1. [STOCK_DATA] → 실시간 주가 데이터. 반드시 이 데이터로 구체적 답변. "주가 모른다" 절대 금지.
-2. [WEATHER_DATA] → 실시간 날씨 데이터. 이 데이터로 친근하게 날씨 안내. 링크 안내 금지.
-3. [SEARCH_RESULTS] 또는 [NAVER_SEARCH_RESULTS] → 검색 결과. 이를 바탕으로 자연스럽게 요약해서 답변.
-4. 데이터가 있으면 반드시 활용하고, 없어도 아는 범위에서 최대한 도움이 되게 답변.
+【절대 규칙 - 반드시 지킬 것】
+1. [STOCK_DATA] 있으면 → 그 주가로 즉시 구체적 답변. "주가 모른다/확인하세요" 절대 금지.
+2. [SEARCH_RESULTS] 있으면 → 그 내용 기반으로 자연스럽게 요약 답변. "직접 확인하세요/앱을 보세요" 절대 금지.
+   예) 날씨 검색결과가 있으면 "내일 서울은 맑고 기온은 XX도 예상됩니다" 식으로 직접 답변.
+3. 검색결과 데이터가 있을 때 링크나 앱 안내로 대체하는 것은 금지.
+4. 데이터가 아예 없을 때만 "정확한 정보는 확인이 필요하다"고 할 수 있음.
 주식 분석 시 반드시 상세하게: 현재시황/기술적분석(지지저항선,매물대)/단기중기장기목표가/매수구간/리스크/최종의견 포함.`;
 
 // ════════════════ INIT ════════════════
@@ -1480,8 +1481,9 @@ ${lines.join('\n')}
 ${lines.join('\n')}
 [/SEARCH_RESULTS]`;
     }
+    console.log('searchNaver: 결과 없음');
     return null;
-  }catch(e){return null;}
+  }catch(e){console.log('searchNaver error:',e.message);return null;}
 }
 async function getStockData(s){
   try{
@@ -1520,7 +1522,7 @@ async function sendMsg(){
   // 네이버 검색 자동 연동 (날씨, 뉴스 등)
   else if(detectSearchQuery(txt)){
     const nr=await searchNaver(txt);
-    if(nr)etxt=txt+'\n\n[NAVER_SEARCH_RESULTS]\n'+nr+'\n[/NAVER_SEARCH_RESULTS]';
+    if(nr)etxt=txt+'\n\n'+nr;  // searchNaver가 이미 태그 포함해서 반환
   }
   const parts=[];if(selImg)parts.push({inlineData:selImg});parts.push({text:etxt});
   chatH.push({role:'user',parts});inp.value='';inp.style.height='auto';rmImg();
