@@ -146,11 +146,28 @@ module.exports = async function handler(req, res) {
       return res.status(200).json(await sj(r));
     }
 
+    // 네이버 API 키 진단
+    if (action === 'check_naver') {
+      const cid = process.env.NAVER_CLIENT_ID||'';
+      const csc = process.env.NAVER_CLIENT_SECRET||'';
+      if(!cid||!csc) return res.status(200).json({ ok:false, msg:'환경변수 NAVER_CLIENT_ID 또는 NAVER_CLIENT_SECRET 없음' });
+      // 실제 테스트
+      try{
+        const r = await fetch('https://openapi.naver.com/v1/search/news.json?query=날씨&display=1',
+          { headers:{'X-Naver-Client-Id':cid,'X-Naver-Client-Secret':csc} });
+        const d = await sj(r);
+        if(d.items) return res.status(200).json({ ok:true, msg:'네이버 API 정상 작동', sample: d.items[0]?.title||'' });
+        return res.status(200).json({ ok:false, msg: d.errorMessage||JSON.stringify(d) });
+      }catch(e){ return res.status(200).json({ ok:false, msg: e.message }); }
+    }
+
     // 날씨 + 네이버 통합 검색 (채팅용)
     if (action === 'naver_search') {
       const { query } = req.body;
       const cid = process.env.NAVER_CLIENT_ID||'';
       const csc = process.env.NAVER_CLIENT_SECRET||'';
+      // 키 없으면 즉시 빈 결과
+      if(!cid||!csc) return res.status(200).json({ type:'error', msg:'NAVER API 키 미설정' });
 
       const isWeather = ['날씨','기온','강수','비','눈','맑','흐','황사','미세먼지','예보','기상'].some(k=>query.includes(k));
       const isNews = ['뉴스','최신','속보','오늘'].some(k=>query.includes(k));
