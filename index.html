@@ -376,7 +376,7 @@
   <div class="nav-logo">🍌</div>
   <div>
     <div class="nav-title">달콩이의 바나나 AI</div>
-    <div class="nav-sub">v1.0 · POWERED BY GEMINI</div>
+    <div class="nav-sub">v1.0 · POWERED BY GEMINI 2.0</div>
   </div>
   <div class="nav-right">
     <button class="nav-tab active" onclick="switchPage('chat')">🤖 AI 채팅</button>
@@ -428,12 +428,14 @@
         <div class="chat-header-icon">🤖</div>
         <div>
           <div class="chat-header-title">달콩이 전용 제미나이</div>
-          <div class="chat-header-sub">Gemini 1.5 Flash · 달콩이 AI 비서</div>
+          <div class="chat-header-sub">Gemini 2.0 Flash · 달콩이 AI 비서</div>
         </div>
         <div class="api-key-area">
           <select class="model-select" id="modelSelect">
-            <option value="gemini-1.5-flash">Flash (빠름)</option>
-            <option value="gemini-1.5-pro">Pro (정확)</option>
+            <option value="gemini-2.0-flash">Flash 2.0 (빠름)</option>
+            <option value="gemini-2.0-flash-lite">Flash Lite (가벼움)</option>
+            <option value="gemini-1.5-flash-latest">Flash 1.5</option>
+            <option value="gemini-1.5-pro-latest">Pro 1.5 (정확)</option>
           </select>
           <input class="api-input" type="password" id="apiKeyInput" placeholder="Gemini API Key 입력..." />
           <button class="api-save-btn" onclick="saveApiKey()">저장</button>
@@ -509,7 +511,7 @@
 <script>
   // ===== STATE =====
   let apiKey = localStorage.getItem('gemini_api_key') || '';
-  let model = localStorage.getItem('gemini_model') || 'gemini-1.5-flash';
+  let model = localStorage.getItem('gemini_model') || 'gemini-2.0-flash';
   let history = [];
   let isLoading = false;
 
