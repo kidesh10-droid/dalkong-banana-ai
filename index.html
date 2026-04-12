@@ -619,6 +619,13 @@ const US_STOCKS = [
 const SYSTEM_PROMPT = `당신은 '달콩이'입니다. 마초킹님의 전용 AI 비서예요.
 성격: 친근하고 실용적. 이모지 적절히 사용. 한국어 답변.
 주인: 마초킹 (한국 이커머스 전문가, Fifine AM8 마이크/SoundPEATS T3 Pro 이어폰 유통)
+
+【매우 중요】 주식 현재가/주가 질문 처리 방법:
+- 사용자가 특정 종목의 현재 주가, 시세, 가격을 물어보면 메시지에 [STOCK_DATA] 섹션이 제공됩니다.
+- [STOCK_DATA]에 실시간 데이터가 있으면 그 데이터를 기반으로 정확하게 답변하세요.
+- "현재 주가를 알 수 없다", "증권사 앱을 확인하세요" 같은 답변은 절대 하지 마세요.
+- 실시간 데이터가 제공되면 반드시 그 데이터를 활용해서 구체적으로 답변하세요.
+
 주식 분석 요청 시: 반드시 아래 형식으로 매우 상세하게 분석해주세요:
 📊 현재 시황 (수급, 최근 이슈, 업종 동향)
 📉 기술적 분석 (지지선/저항선, 이동평균선, 매물대)
@@ -1213,13 +1220,88 @@ function autoH(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeig
 function sendQ(t){document.getElementById('chatIn').value=t;sendMsg();}
 function onImgSel(e){const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=ev=>{selImg={mimeType:f.type,data:ev.target.result.split(',')[1]};document.getElementById('prevImg').src=ev.target.result;document.getElementById('imgNm').textContent=f.name;document.getElementById('imgPrev').style.display='block';};rd.readAsDataURL(f);}
 function rmImg(){selImg=null;document.getElementById('imgPrev').style.display='none';document.getElementById('imgInput').value='';}
+// 주식 관련 키워드 감지
+function detectStockQuery(txt) {
+  const keywords = ['주가','시세','현재가','얼마','주식','코스피','코스닥','종목','상장','시총','매수','매도','목표가','차트','분석'];
+  const hasKeyword = keywords.some(k => txt.includes(k));
+  if (!hasKeyword) return null;
+  // 종목명/코드 추출
+  const allStocks = [...KR_STOCKS, ...US_STOCKS];
+  const found = allStocks.find(s =>
+    txt.includes(s.name) || txt.includes(s.code) ||
+    (s.code.length <= 6 && txt.toUpperCase().includes(s.code.toUpperCase()))
+  );
+  return found || null;
+}
+
+async function fetchStockForChat(stock) {
+  try {
+    const mkt = KR_STOCKS.find(s=>s.code===stock.code) ? 'kr' : 'us';
+    if (mkt === 'us') {
+      const r = await fetch('/api/stock?action=market_us');
+      const d = await r.json();
+      const f = d.results?.find(x => x.symbol === stock.code);
+      if (f) return `[STOCK_DATA]
+종목: ${stock.name} (${stock.code})
+현재가: $${f.price?.toFixed(2)}
+등락률: ${f.change>=0?'+':''}${f.change?.toFixed(2)}%
+시장: 미국
+조회시각: ${new Date().toLocaleString('ko-KR')}`;
+    } else if (kisToken) {
+      const r = await fetch('/api/stock?action=price_kr', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({token:kisToken, ticker:stock.code, mode:tradeMode})
+      });
+      const d = await r.json();
+      if (d.output && parseInt(d.output.stck_prpr) > 0) {
+        const p = parseInt(d.output.stck_prpr);
+        const chg = parseFloat(d.output.prdy_ctrt||0);
+        return `[STOCK_DATA]
+종목: ${stock.name} (${stock.code})
+현재가: ${p.toLocaleString()}원
+전일대비: ${chg>=0?'+':''}${chg.toFixed(2)}%
+고가: ${parseInt(d.output.stck_hgpr||0).toLocaleString()}원
+저가: ${parseInt(d.output.stck_lwpr||0).toLocaleString()}원
+거래량: ${parseInt(d.output.acml_vol||0).toLocaleString()}주
+시장: 한국(KIS)
+조회시각: ${new Date().toLocaleString('ko-KR')}`;
+      }
+    }
+    // Yahoo Finance fallback (.KS/.KQ)
+    for (const suffix of ['.KS', '.KQ']) {
+      const r = await fetch(`/api/stock?action=chart&symbol=${stock.code}${suffix}&range=1d`);
+      const d = await r.json();
+      if (d.closes && d.closes.length > 0) {
+        const p = Math.round(d.closes[d.closes.length-1]);
+        return `[STOCK_DATA]
+종목: ${stock.name} (${stock.code})
+현재가: ${p.toLocaleString()}원
+출처: Yahoo Finance
+조회시각: ${new Date().toLocaleString('ko-KR')}`;
+      }
+    }
+  } catch(e) {}
+  return null;
+}
+
 async function sendMsg(){
   const inp=document.getElementById('chatIn');const txt=inp.value.trim();
   if((!txt&&!selImg)||isLoad)return;
   if(!apiKey){alert('Gemini API 키 먼저!');focusApiKey();return;}
   const w=document.getElementById('welcome');if(w)w.style.display='none';
   if(selImg)addMsgI('user',txt,document.getElementById('prevImg').src);else addM('user',txt);
-  const parts=[];if(selImg)parts.push({inlineData:selImg});if(txt)parts.push({text:txt});
+
+  // 주식 질문 감지 → 실시간 가격 자동 조회
+  let enrichedTxt = txt;
+  const stockFound = detectStockQuery(txt);
+  if (stockFound) {
+    const stockData = await fetchStockForChat(stockFound);
+    if (stockData) enrichedTxt = txt + '
+
+' + stockData;
+  }
+
+  const parts=[];if(selImg)parts.push({inlineData:selImg});parts.push({text:enrichedTxt});
   chatHist.push({role:'user',parts});inp.value='';inp.style.height='auto';rmImg();
   isLoad=true;document.getElementById('sendBtn').disabled=true;
   const tid=addTyping();
