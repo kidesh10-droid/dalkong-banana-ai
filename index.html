@@ -3,13 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>달콩이의 바나나 AI — 프로젝트 플랜</title>
+<title>달콩이의 바나나 AI</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --banana: #FFE135;
-    --banana-dark: #E6C800;
-    --banana-light: #FFF5A0;
     --bg: #0D0D0D;
     --bg2: #141414;
     --bg3: #1C1C1C;
@@ -23,876 +21,684 @@
     --work: #B57BFF;
     --radius: 16px;
   }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
+  * { margin:0; padding:0; box-sizing:border-box; }
   body {
     font-family: 'Noto Sans KR', sans-serif;
     background: var(--bg);
     color: var(--text);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* NOISE OVERLAY */
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-    pointer-events: none; z-index: 0; opacity: 0.4;
-  }
-
-  /* HERO */
-  .hero {
-    position: relative;
-    padding: 60px 40px 40px;
+    height: 100vh;
     display: flex;
-    align-items: flex-start;
-    gap: 40px;
-    border-bottom: 1px solid var(--border);
+    flex-direction: column;
     overflow: hidden;
   }
 
-  .hero-bg {
-    position: absolute; inset: 0;
-    background: radial-gradient(ellipse 60% 80% at 80% 50%, rgba(255,225,53,0.07) 0%, transparent 70%);
-  }
-
-  .banana-logo {
-    font-size: 80px;
-    line-height: 1;
-    filter: drop-shadow(0 0 40px rgba(255,225,53,0.5));
-    animation: float 3s ease-in-out infinite;
-    flex-shrink: 0;
-  }
-
-  @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-  }
-
-  .hero-text { position: relative; z-index: 1; }
-
-  .project-tag {
-    display: inline-block;
-    font-family: 'Space Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--banana);
-    background: rgba(255,225,53,0.1);
-    border: 1px solid rgba(255,225,53,0.3);
-    padding: 4px 12px;
-    border-radius: 100px;
-    margin-bottom: 16px;
-  }
-
-  h1 {
-    font-size: clamp(32px, 5vw, 56px);
-    font-weight: 900;
-    line-height: 1.1;
-    letter-spacing: -1px;
-    margin-bottom: 12px;
-  }
-
-  h1 span { color: var(--banana); }
-
-  .hero-sub {
-    font-size: 15px;
-    color: var(--text-muted);
-    line-height: 1.6;
-    max-width: 500px;
-    margin-bottom: 24px;
-  }
-
-  .stack-badges {
-    display: flex; flex-wrap: wrap; gap: 8px;
-  }
-
-  .badge {
-    font-family: 'Space Mono', monospace;
-    font-size: 11px;
-    padding: 5px 12px;
-    border-radius: 6px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text-muted);
-  }
-
-  .badge.highlight { color: var(--banana); border-color: rgba(255,225,53,0.3); background: rgba(255,225,53,0.06); }
-
-  /* STATS BAR */
-  .stats-bar {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .stat {
-    padding: 24px 32px;
-    border-right: 1px solid var(--border);
-  }
-  .stat:last-child { border-right: none; }
-
-  .stat-num {
-    font-family: 'Space Mono', monospace;
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--banana);
-    display: block;
-    margin-bottom: 4px;
-  }
-
-  .stat-label {
-    font-size: 12px;
-    color: var(--text-muted);
-    letter-spacing: 0.5px;
-  }
-
-  /* MAIN GRID */
-  .main {
-    padding: 40px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    position: relative; z-index: 1;
-  }
-
-  .module {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-    transition: border-color 0.3s, transform 0.2s;
-  }
-
-  .module:hover {
-    transform: translateY(-2px);
-    border-color: var(--border);
-  }
-
-  .module.full { grid-column: 1 / -1; }
-
-  .module-header {
-    padding: 20px 24px;
+  /* TOP NAV */
+  .nav {
     display: flex;
     align-items: center;
-    gap: 14px;
+    padding: 0 24px;
+    height: 56px;
     border-bottom: 1px solid var(--border);
-  }
-
-  .mod-icon {
-    width: 42px; height: 42px;
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 20px;
+    gap: 16px;
     flex-shrink: 0;
+    background: var(--bg);
+    z-index: 10;
   }
-
-  .mod-icon.gemini { background: rgba(66,133,244,0.15); }
-  .mod-icon.naver { background: rgba(3,199,90,0.15); }
-  .mod-icon.stock { background: rgba(255,107,53,0.15); }
-  .mod-icon.work { background: rgba(181,123,255,0.15); }
-  .mod-icon.infra { background: rgba(255,225,53,0.12); }
-
-  .mod-title { font-size: 16px; font-weight: 700; }
-  .mod-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-
-  .mod-status {
-    margin-left: auto;
-    font-family: 'Space Mono', monospace;
-    font-size: 10px;
-    padding: 3px 10px;
+  .nav-logo { font-size: 22px; }
+  .nav-title { font-size: 15px; font-weight: 700; color: var(--banana); }
+  .nav-sub { font-size: 11px; color: var(--text-muted); font-family: 'Space Mono', monospace; }
+  .nav-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .nav-tab {
+    font-size: 12px;
+    padding: 5px 14px;
     border-radius: 100px;
-    border: 1px solid;
-  }
-
-  .mod-status.plan { color: #888; border-color: #333; }
-  .mod-status.active { color: var(--naver); border-color: rgba(3,199,90,0.4); }
-  .mod-status.build { color: var(--banana); border-color: rgba(255,225,53,0.4); }
-
-  .module-body { padding: 20px 24px; }
-
-  /* FEATURE LIST */
-  .feature-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
-
-  .feature-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    font-size: 13px;
-    line-height: 1.5;
-  }
-
-  .feature-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    margin-top: 6px;
-    flex-shrink: 0;
-  }
-
-  .dot-gemini { background: var(--gemini); }
-  .dot-naver { background: var(--naver); }
-  .dot-stock { background: var(--stock); }
-  .dot-work { background: var(--work); }
-  .dot-banana { background: var(--banana); }
-
-  .feature-text { color: #CCC; }
-  .feature-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
-
-  /* DIVIDER */
-  .mod-divider {
-    height: 1px;
-    background: var(--border);
-    margin: 16px 0;
-  }
-
-  /* TECH STACK */
-  .tech-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-  }
-
-  .tech-item {
-    background: var(--bg3);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 14px;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+  .nav-tab:hover { border-color: var(--banana); color: var(--banana); }
+  .nav-tab.active { background: rgba(255,225,53,0.1); border-color: var(--banana); color: var(--banana); }
+
+  /* LAYOUT */
+  .layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 220px;
+    border-right: 1px solid var(--border);
+    padding: 20px 12px;
     display: flex;
     flex-direction: column;
     gap: 4px;
-  }
-
-  .tech-role { font-size: 10px; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; }
-  .tech-name { font-size: 13px; font-weight: 600; font-family: 'Space Mono', monospace; }
-  .tech-name.c-banana { color: var(--banana); }
-  .tech-name.c-gemini { color: var(--gemini); }
-  .tech-name.c-naver { color: var(--naver); }
-  .tech-name.c-stock { color: var(--stock); }
-  .tech-name.c-work { color: var(--work); }
-
-  /* ROADMAP */
-  .roadmap {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    position: relative;
-  }
-
-  .roadmap::before {
-    content: '';
-    position: absolute;
-    left: 19px; top: 0; bottom: 0;
-    width: 1px;
-    background: linear-gradient(to bottom, var(--banana), var(--stock), transparent);
-    opacity: 0.3;
-  }
-
-  .road-phase {
-    display: flex;
-    gap: 20px;
-    padding: 14px 0;
-    position: relative;
-  }
-
-  .road-dot {
-    width: 38px; height: 38px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-family: 'Space Mono', monospace;
-    font-size: 12px;
-    font-weight: 700;
     flex-shrink: 0;
-    border: 2px solid;
-    position: relative; z-index: 1;
+    overflow-y: auto;
   }
-
-  .road-dot.done { background: rgba(255,225,53,0.15); border-color: var(--banana); color: var(--banana); }
-  .road-dot.active { background: rgba(3,199,90,0.15); border-color: var(--naver); color: var(--naver); }
-  .road-dot.next { background: rgba(255,107,53,0.1); border-color: var(--stock); color: var(--stock); }
-  .road-dot.future { background: var(--bg3); border-color: var(--border); color: var(--text-muted); }
-
-  .road-content { padding-top: 6px; }
-  .road-phase-name { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
-  .road-items { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
-
-  /* ARCHITECTURE */
-  .arch-flow {
+  .sidebar-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 8px 10px 4px;
+    font-family: 'Space Mono', monospace;
+  }
+  .sidebar-item {
     display: flex;
     align-items: center;
-    gap: 0;
-    overflow-x: auto;
-    padding: 10px 0;
-  }
-
-  .arch-node {
-    background: var(--bg3);
-    border: 1px solid var(--border);
+    gap: 10px;
+    padding: 9px 10px;
     border-radius: 10px;
-    padding: 14px 18px;
-    text-align: center;
-    flex-shrink: 0;
-    min-width: 100px;
-  }
-
-  .arch-node-icon { font-size: 22px; display: block; margin-bottom: 6px; }
-  .arch-node-name { font-size: 12px; font-weight: 600; }
-  .arch-node-sub { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
-
-  .arch-arrow {
-    font-size: 16px;
+    cursor: pointer;
+    font-size: 13px;
     color: var(--text-muted);
-    padding: 0 8px;
-    flex-shrink: 0;
+    transition: all 0.15s;
+    border: 1px solid transparent;
   }
-
-  .arch-node.highlight-y { border-color: rgba(255,225,53,0.4); background: rgba(255,225,53,0.06); }
-  .arch-node.highlight-g { border-color: rgba(66,133,244,0.4); background: rgba(66,133,244,0.06); }
-  .arch-node.highlight-n { border-color: rgba(3,199,90,0.4); background: rgba(3,199,90,0.06); }
-
-  /* AUTOMATION TABLE */
-  .auto-table { width: 100%; border-collapse: collapse; }
-  .auto-table th {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--text-muted);
-    padding: 8px 12px;
-    text-align: left;
-    border-bottom: 1px solid var(--border);
-  }
-  .auto-table td {
-    font-size: 12px;
-    padding: 10px 12px;
-    border-bottom: 1px solid rgba(46,46,46,0.5);
-    vertical-align: middle;
-  }
-  .auto-table tr:last-child td { border-bottom: none; }
-
-  .pill {
-    display: inline-block;
-    font-size: 10px;
-    padding: 2px 8px;
+  .sidebar-item:hover { background: var(--bg3); color: var(--text); }
+  .sidebar-item.active { background: rgba(255,225,53,0.08); border-color: rgba(255,225,53,0.2); color: var(--banana); }
+  .sidebar-icon { font-size: 16px; width: 20px; text-align: center; }
+  .sidebar-badge {
+    margin-left: auto;
+    font-size: 9px;
+    padding: 2px 6px;
     border-radius: 100px;
+    background: rgba(255,225,53,0.15);
+    color: var(--banana);
     font-family: 'Space Mono', monospace;
   }
+  .sidebar-badge.dim { background: var(--bg3); color: var(--text-muted); }
 
-  .pill-g { background: rgba(3,199,90,0.15); color: var(--naver); }
-  .pill-y { background: rgba(255,225,53,0.12); color: var(--banana); }
-  .pill-o { background: rgba(255,107,53,0.12); color: var(--stock); }
-  .pill-p { background: rgba(181,123,255,0.12); color: var(--work); }
+  /* MAIN PANEL */
+  .panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
-  /* FOOTER */
-  .footer {
-    padding: 24px 40px;
+  /* PAGES */
+  .page { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+  .page.active { display: flex; }
+
+  /* ===== GEMINI CHAT PAGE ===== */
+  .chat-header {
+    padding: 20px 28px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+  }
+  .chat-header-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: rgba(66,133,244,0.15);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+  .chat-header-title { font-size: 15px; font-weight: 700; }
+  .chat-header-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .api-key-area {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .api-input {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 12px;
+    color: var(--text);
+    width: 220px;
+    font-family: 'Space Mono', monospace;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .api-input:focus { border-color: var(--gemini); }
+  .api-input::placeholder { color: var(--text-muted); }
+  .api-save-btn {
+    background: rgba(66,133,244,0.15);
+    border: 1px solid rgba(66,133,244,0.3);
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 12px;
+    color: #4285F4;
+    cursor: pointer;
+    font-family: 'Noto Sans KR', sans-serif;
+    transition: all 0.2s;
+  }
+  .api-save-btn:hover { background: rgba(66,133,244,0.25); }
+
+  /* MESSAGES */
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    scroll-behavior: smooth;
+  }
+  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar-track { background: transparent; }
+  .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* WELCOME */
+  .welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 16px;
+    padding: 40px;
+    text-align: center;
+  }
+  .welcome-emoji { font-size: 60px; animation: float 3s ease-in-out infinite; }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+  .welcome-title { font-size: 22px; font-weight: 700; }
+  .welcome-title span { color: var(--banana); }
+  .welcome-sub { font-size: 14px; color: var(--text-muted); line-height: 1.6; max-width: 360px; }
+  .welcome-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px; }
+  .chip {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 7px 16px;
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .chip:hover { border-color: var(--banana); color: var(--banana); background: rgba(255,225,53,0.06); }
+
+  /* MSG BUBBLE */
+  .msg { display: flex; gap: 12px; max-width: 780px; animation: msgIn 0.3s ease; }
+  @keyframes msgIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  .msg.user { flex-direction: row-reverse; align-self: flex-end; }
+  .msg-avatar {
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .msg-avatar.ai { background: rgba(66,133,244,0.15); }
+  .msg-avatar.user { background: rgba(255,225,53,0.15); }
+  .msg-content { display: flex; flex-direction: column; gap: 4px; max-width: calc(100% - 50px); }
+  .msg-name { font-size: 11px; color: var(--text-muted); font-family: 'Space Mono', monospace; }
+  .msg.user .msg-name { text-align: right; }
+  .msg-bubble {
+    padding: 12px 16px;
+    border-radius: 14px;
+    font-size: 14px;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .msg.ai .msg-bubble {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-top-left-radius: 4px;
+    color: var(--text);
+  }
+  .msg.user .msg-bubble {
+    background: rgba(255,225,53,0.1);
+    border: 1px solid rgba(255,225,53,0.2);
+    border-top-right-radius: 4px;
+    color: var(--text);
+  }
+
+  /* TYPING */
+  .typing-dots { display: flex; gap: 4px; padding: 4px 0; }
+  .typing-dots span {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    animation: dot 1.2s infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes dot { 0%,80%,100%{opacity:0.2;transform:scale(0.8)} 40%{opacity:1;transform:scale(1)} }
+
+  /* INPUT AREA */
+  .input-area {
+    padding: 16px 28px 20px;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .input-box {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 10px 14px;
+    transition: border-color 0.2s;
+  }
+  .input-box:focus-within { border-color: rgba(66,133,244,0.4); }
+  .chat-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-size: 14px;
+    font-family: 'Noto Sans KR', sans-serif;
+    resize: none;
+    max-height: 120px;
+    min-height: 24px;
+    line-height: 1.5;
+  }
+  .chat-input::placeholder { color: var(--text-muted); }
+  .send-btn {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: var(--banana);
+    border: none;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    color: #000;
+  }
+  .send-btn:hover { background: #FFD700; transform: scale(1.05); }
+  .send-btn:disabled { background: var(--border); cursor: not-allowed; transform: none; }
+  .input-hint { font-size: 11px; color: var(--text-muted); margin-top: 8px; text-align: center; }
+
+  /* MODEL SELECT */
+  .model-select {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'Space Mono', monospace;
+    cursor: pointer;
+    outline: none;
+  }
+
+  /* ===== OTHER PAGES (COMING SOON) ===== */
+  .coming-soon {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    color: var(--text-muted);
+  }
+  .coming-soon-icon { font-size: 48px; opacity: 0.4; }
+  .coming-soon-title { font-size: 18px; font-weight: 700; color: var(--text); }
+  .coming-soon-sub { font-size: 13px; color: var(--text-muted); text-align: center; line-height: 1.6; }
+  .coming-pill {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    padding: 5px 14px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    margin-top: 8px;
+  }
+
+  /* STATUS BAR */
+  .status-bar {
+    height: 28px;
     border-top: 1px solid var(--border);
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    position: relative; z-index: 1;
+    padding: 0 16px;
+    gap: 16px;
+    flex-shrink: 0;
   }
+  .status-dot { width:6px; height:6px; border-radius:50%; }
+  .status-dot.on { background: var(--naver); animation: pulse 2s infinite; }
+  .status-dot.off { background: var(--text-muted); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .status-text { font-size: 10px; color: var(--text-muted); font-family: 'Space Mono', monospace; }
 
-  .footer-left { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-muted); }
-  .footer-right { display: flex; gap: 12px; align-items: center; }
-
-  .deploy-badge {
-    display: flex; align-items: center; gap: 6px;
-    font-size: 12px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 6px 12px;
-    color: var(--text-muted);
-  }
-
-  .deploy-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--naver);
-    animation: pulse 2s infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-  }
-
-  /* RESPONSIVE */
   @media (max-width: 768px) {
-    .main { grid-template-columns: 1fr; padding: 20px; }
-    .module.full { grid-column: 1; }
-    .stats-bar { grid-template-columns: repeat(2, 1fr); }
-    .hero { padding: 30px 20px; flex-direction: column; gap: 16px; }
-    .banana-logo { font-size: 50px; }
-    .footer { flex-direction: column; gap: 16px; align-items: flex-start; padding: 20px; }
-    .tech-grid { grid-template-columns: repeat(2, 1fr); }
-  }
-
-  /* ENTRANCE ANIMATION */
-  .module { opacity: 0; animation: fadeUp 0.5s forwards; }
-  .module:nth-child(1) { animation-delay: 0.1s; }
-  .module:nth-child(2) { animation-delay: 0.2s; }
-  .module:nth-child(3) { animation-delay: 0.3s; }
-  .module:nth-child(4) { animation-delay: 0.4s; }
-  .module:nth-child(5) { animation-delay: 0.5s; }
-  .module:nth-child(6) { animation-delay: 0.6s; }
-
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+    .sidebar { display: none; }
+    .api-input { width: 140px; }
   }
 </style>
 </head>
 <body>
 
-<!-- HERO -->
-<section class="hero">
-  <div class="hero-bg"></div>
-  <div class="banana-logo">🍌</div>
-  <div class="hero-text">
-    <div class="project-tag">PROJECT DALKONG · v1.0 PLAN</div>
-    <h1>달콩이의<br><span>바나나 AI</span></h1>
-    <p class="hero-sub">
-      나만의 올인원 AI 비서 플랫폼 — 제미나이 연동, 네이버 블로그 자동화, 주식 분석, 업무 자동화를 하나의 대시보드에서.
-      베셀(Vessel) 기반 배포, 완전 자동화 목적 설계.
-    </p>
-    <div class="stack-badges">
-      <span class="badge highlight">Next.js / Vercel</span>
-      <span class="badge highlight">Google Gemini</span>
-      <span class="badge highlight">Naver API</span>
-      <span class="badge">Yahoo Finance</span>
-      <span class="badge">GitHub CI/CD</span>
-      <span class="badge">베셀(Vessel)</span>
-    </div>
+<!-- TOP NAV -->
+<nav class="nav">
+  <div class="nav-logo">🍌</div>
+  <div>
+    <div class="nav-title">달콩이의 바나나 AI</div>
+    <div class="nav-sub">v1.0 · POWERED BY GEMINI</div>
   </div>
-</section>
+  <div class="nav-right">
+    <button class="nav-tab active" onclick="switchPage('chat')">🤖 AI 채팅</button>
+    <button class="nav-tab" onclick="switchPage('stock')">📈 주식</button>
+    <button class="nav-tab" onclick="switchPage('blog')">📝 블로그</button>
+    <button class="nav-tab" onclick="switchPage('work')">⚙️ 업무</button>
+  </div>
+</nav>
 
-<!-- STATS BAR -->
-<div class="stats-bar">
-  <div class="stat">
-    <span class="stat-num">4</span>
-    <span class="stat-label">핵심 모듈</span>
-  </div>
-  <div class="stat">
-    <span class="stat-num">100%</span>
-    <span class="stat-label">자동화 목표</span>
-  </div>
-  <div class="stat">
-    <span class="stat-num">1</span>
-    <span class="stat-label">통합 배포 플랫폼</span>
-  </div>
-  <div class="stat">
-    <span class="stat-num">∞</span>
-    <span class="stat-label">확장 가능성</span>
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-label">메뉴</div>
+    <div class="sidebar-item active" onclick="switchPage('chat')">
+      <span class="sidebar-icon">🤖</span> 달콩이 채팅
+      <span class="sidebar-badge">ON</span>
+    </div>
+    <div class="sidebar-item" onclick="switchPage('stock')">
+      <span class="sidebar-icon">📈</span> 주식 분석
+      <span class="sidebar-badge dim">SOON</span>
+    </div>
+    <div class="sidebar-item" onclick="switchPage('blog')">
+      <span class="sidebar-icon">📝</span> 블로그 자동화
+      <span class="sidebar-badge dim">SOON</span>
+    </div>
+    <div class="sidebar-item" onclick="switchPage('work')">
+      <span class="sidebar-icon">⚙️</span> 업무 자동화
+      <span class="sidebar-badge dim">SOON</span>
+    </div>
+
+    <div class="sidebar-label" style="margin-top:12px;">설정</div>
+    <div class="sidebar-item" onclick="focusApiKey()">
+      <span class="sidebar-icon">🔑</span> API 키 설정
+    </div>
+    <div class="sidebar-item" onclick="clearChat()">
+      <span class="sidebar-icon">🗑️</span> 대화 초기화
+    </div>
+  </aside>
+
+  <!-- PANEL -->
+  <div class="panel">
+
+    <!-- CHAT PAGE -->
+    <div class="page active" id="page-chat">
+      <!-- CHAT HEADER -->
+      <div class="chat-header">
+        <div class="chat-header-icon">🤖</div>
+        <div>
+          <div class="chat-header-title">달콩이 전용 제미나이</div>
+          <div class="chat-header-sub">Gemini 1.5 Flash · 달콩이 AI 비서</div>
+        </div>
+        <div class="api-key-area">
+          <select class="model-select" id="modelSelect">
+            <option value="gemini-1.5-flash">Flash (빠름)</option>
+            <option value="gemini-1.5-pro">Pro (정확)</option>
+          </select>
+          <input class="api-input" type="password" id="apiKeyInput" placeholder="Gemini API Key 입력..." />
+          <button class="api-save-btn" onclick="saveApiKey()">저장</button>
+        </div>
+      </div>
+
+      <!-- MESSAGES -->
+      <div class="messages" id="messages">
+        <div class="welcome" id="welcome">
+          <div class="welcome-emoji">🍌</div>
+          <div class="welcome-title">안녕하세요! <span>달콩이</span>예요</div>
+          <div class="welcome-sub">Gemini API 키를 입력하고 저장하면 바로 대화할 수 있어요.<br>무엇이든 물어보세요!</div>
+          <div class="welcome-chips">
+            <div class="chip" onclick="sendQuick('오늘 할 일 정리해줘')">📋 오늘 할 일 정리</div>
+            <div class="chip" onclick="sendQuick('네이버 스마트스토어 판매 전략 알려줘')">🛒 스마트스토어 전략</div>
+            <div class="chip" onclick="sendQuick('삼성전자 주식 현재 전망 분석해줘')">📈 주식 전망 분석</div>
+            <div class="chip" onclick="sendQuick('블로그 글 주제 추천해줘')">✍️ 블로그 주제 추천</div>
+            <div class="chip" onclick="sendQuick('달콩이 소개해봐')">🍌 달콩이 소개</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- INPUT -->
+      <div class="input-area">
+        <div class="input-box">
+          <textarea class="chat-input" id="chatInput" placeholder="달콩이에게 무엇이든 물어보세요..." rows="1"
+            onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+          <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+        </div>
+        <div class="input-hint">Enter로 전송 · Shift+Enter 줄바꿈 · API 키는 브라우저에만 저장됩니다</div>
+      </div>
+    </div>
+
+    <!-- STOCK PAGE -->
+    <div class="page" id="page-stock">
+      <div class="coming-soon">
+        <div class="coming-soon-icon">📈</div>
+        <div class="coming-soon-title">주식 시황 & 자동 매매</div>
+        <div class="coming-soon-sub">한국·미국 주식 실시간 시황, AI 목표가 분석<br>단기·중기·장기 구분, 차트 기술적 분석</div>
+        <div class="coming-pill">Phase 2 — 개발 예정</div>
+      </div>
+    </div>
+
+    <!-- BLOG PAGE -->
+    <div class="page" id="page-blog">
+      <div class="coming-soon">
+        <div class="coming-soon-icon">📝</div>
+        <div class="coming-soon-title">네이버 블로그 자동화</div>
+        <div class="coming-soon-sub">AI 블로그 글 자동 생성, 네이버 계정 연동<br>스케줄링 자동 발행, SEO 키워드 최적화</div>
+        <div class="coming-pill">Phase 4 — 개발 예정</div>
+      </div>
+    </div>
+
+    <!-- WORK PAGE -->
+    <div class="page" id="page-work">
+      <div class="coming-soon">
+        <div class="coming-soon-icon">⚙️</div>
+        <div class="coming-soon-title">업무 자동화 & 분석</div>
+        <div class="coming-soon-sub">네이버 키워드 분석, 광고 성과 리포트<br>Coupang·Naver 광고 시뮬레이션, AI SEO 생성</div>
+        <div class="coming-pill">Phase 3 — 개발 예정</div>
+      </div>
+    </div>
+
   </div>
 </div>
 
-<!-- MAIN GRID -->
-<div class="main">
-
-  <!-- MODULE 1: GEMINI -->
-  <div class="module">
-    <div class="module-header">
-      <div class="mod-icon gemini">🤖</div>
-      <div>
-        <div class="mod-title">달콩이 전용 제미나이</div>
-        <div class="mod-subtitle">Module 01 — AI 질문·답변</div>
-      </div>
-      <span class="mod-status build">BUILD</span>
-    </div>
-    <div class="module-body">
-      <ul class="feature-list">
-        <li class="feature-item">
-          <span class="feature-dot dot-gemini"></span>
-          <div>
-            <div class="feature-text">달콩이 전용 시스템 프롬프트 설정</div>
-            <div class="feature-sub">캐릭터·톤·역할 커스터마이징</div>
-          </div>
-        </li>
-        <li class="feature-item">
-          <span class="feature-dot dot-gemini"></span>
-          <div>
-            <div class="feature-text">대화 히스토리 관리 (멀티턴)</div>
-            <div class="feature-sub">세션별 컨텍스트 유지</div>
-          </div>
-        </li>
-        <li class="feature-item">
-          <span class="feature-dot dot-gemini"></span>
-          <div>
-            <div class="feature-text">Gemini 1.5 Pro / Flash 선택</div>
-            <div class="feature-sub">쿼터 한도 대응 — Flash 폴백 구조</div>
-          </div>
-        </li>
-        <li class="feature-item">
-          <span class="feature-dot dot-gemini"></span>
-          <div>
-            <div class="feature-text">전용 페이지 내 독립 실행</div>
-            <div class="feature-sub">다른 모듈과 사이드바 통합</div>
-          </div>
-        </li>
-      </ul>
-      <div class="mod-divider"></div>
-      <div style="font-size:11px; color: var(--text-muted);">⚠️ Gemini API 쿼터 이슈 → Flash 우선 + 캐싱 전략 필요</div>
-    </div>
-  </div>
-
-  <!-- MODULE 2: NAVER BLOG -->
-  <div class="module">
-    <div class="module-header">
-      <div class="mod-icon naver">📝</div>
-      <div>
-        <div class="mod-title">네이버 블로그 자동화</div>
-        <div class="mod-subtitle">Module 02 — 작성 & 자동 업로드</div>
-      </div>
-      <span class="mod-status plan">PLAN</span>
-    </div>
-    <div class="module-body">
-      <ul class="feature-list">
-        <li class="feature-item">
-          <span class="feature-dot dot-naver"></span>
-          <div>
-            <div class="feature-text">AI 블로그 글 자동 생성</div>
-            <div class="feature-sub">Gemini로 제목·본문·태그 일괄 생성</div>
-          </div>
-        </li>
-        <li class="feature-item">
-          <span class="feature-dot dot-naver"></span>
-          <div>
-            <div class="feature-text">네이버 계정 연동 자동 업로드</div>
-            <div class="feature-sub">Naver Blog API / Playwright 자동화</div>
-          </div>
-        </li>
-        <li class="feature-item">
-          <span class="feature-dot dot-naver"></span>
-          <div>
-            <div class="feature-text">스케줄링 자동 발행</div>
-            <div class="feature-sub">크론 잡 기반 예약 포스팅</div>
-          </div>
-        </li>
-        <li class="feature-item">
-          <span class="feature-dot dot-naver"></span>
-          <div>
-            <div class="feature-text">SEO 최적화 키워드 삽입</div>
-            <div class="feature-sub">네이버 쇼핑 분석 Pro 연동</div>
-          </div>
-        </li>
-      </ul>
-      <div class="mod-divider"></div>
-      <div style="font-size:11px; color: var(--text-muted);">📌 네이버 Open API 계정 연동 키 발급 필요</div>
-    </div>
-  </div>
-
-  <!-- MODULE 3: STOCK -->
-  <div class="module">
-    <div class="module-header">
-      <div class="mod-icon stock">📈</div>
-      <div>
-        <div class="mod-title">주식 시황 & 자동 매매</div>
-        <div class="mod-subtitle">Module 03 — 분석·목표가·자동화</div>
-      </div>
-      <span class="mod-status build">BUILD</span>
-    </div>
-    <div class="module-body">
-      <ul class="feature-list">
-        <li class="feature-item">
-          <span class="feature-dot dot-stock"></span>
-          <div>
-            <div class="feature-text">한국·미국 주식 실시간 시황</div>
-            <div class="feature-sub">Yahoo Finance + 네이버 증권 API</div>
-          </div>
-        </li>
-        <li class="feature-item">
-          <span class="feature-dot dot-stock"></span>
-          <div>
-            <div class="feature-text">AI 매수·매도 목표가 분석</div>
-            <div class="feature-sub">단기(1-2주) / 중기(1-3개월) / 장기(6개월+)</div>
-          </div>
-        </li>
-        <li class="feature-item">
-          <span class="feature-dot dot-stock"></span>
-          <div>
-            <div class="feature-text">차트 기술적 분석 자동화</div>
-            <div class="feature-sub">이동평균, RSI, MACD AI 해석</div>
-          </div>
-        </li>
-        <li class="feature-item">
-          <span class="feature-dot dot-stock"></span>
-          <div>
-            <div class="feature-text">증권사 API 자동 매수·매도 연동</div>
-            <div class="feature-sub">한국투자증권 / 키움 Open API (실투자)</div>
-          </div>
-        </li>
-      </ul>
-      <div class="mod-divider"></div>
-      <div style="font-size:11px; color: #FF6B35;">🔴 실투자 연동 — 증권사 모의투자 먼저 검증 필수</div>
-    </div>
-  </div>
-
-  <!-- MODULE 4: WORK -->
-  <div class="module">
-    <div class="module-header">
-      <div class="mod-icon work">⚙️</div>
-      <div>
-        <div class="mod-title">업무 자동화 & 분석</div>
-        <div class="mod-subtitle">Module 04 — 마케팅·광고·키워드</div>
-      </div>
-      <span class="mod-status active">ACTIVE</span>
-    </div>
-    <div class="module-body">
-      <ul class="feature-list">
-        <li class="feature-item">
-          <span class="feature-dot dot-work"></span>
-          <div>
-            <div class="feature-text">네이버 키워드 분석 탑재</div>
-            <div class="feature-sub">네이버 쇼핑 분석 Pro 기능 통합</div>
-          </div>
-        </li>
-        <li class="feature-item">
-          <span class="feature-dot dot-work"></span>
-          <div>
-            <div class="feature-text">광고 성과 자동 분석 리포트</div>
-            <div class="feature-sub">ROAS·전환율·순이익 자동 계산</div>
-          </div>
-        </li>
-        <li class="feature-item">
-          <span class="feature-dot dot-work"></span>
-          <div>
-            <div class="feature-text">Coupang·Naver 광고 시뮬레이션</div>
-            <div class="feature-sub">실제 CPC 데이터 기반 예산 최적화</div>
-          </div>
-        </li>
-        <li class="feature-item">
-          <span class="feature-dot dot-work"></span>
-          <div>
-            <div class="feature-text">AI 상품명 SEO 자동 생성</div>
-            <div class="feature-sub">키워드 조합 → 최적 상품명 추천</div>
-          </div>
-        </li>
-      </ul>
-      <div class="mod-divider"></div>
-      <div style="font-size:11px; color: var(--work);">✅ 네이버 쇼핑 분석 Pro 기존 코드 재활용 가능</div>
-    </div>
-  </div>
-
-  <!-- ARCHITECTURE (FULL WIDTH) -->
-  <div class="module full">
-    <div class="module-header">
-      <div class="mod-icon infra">🏗️</div>
-      <div>
-        <div class="mod-title">시스템 아키텍처</div>
-        <div class="mod-subtitle">배포 구조 — 베셀(Vessel) 기반</div>
-      </div>
-      <span class="mod-status build">INFRA</span>
-    </div>
-    <div class="module-body">
-      <div class="arch-flow">
-        <div class="arch-node highlight-y">
-          <span class="arch-node-icon">🍌</span>
-          <div class="arch-node-name">달콩이 UI</div>
-          <div class="arch-node-sub">Next.js Frontend</div>
-        </div>
-        <div class="arch-arrow">→</div>
-        <div class="arch-node highlight-y">
-          <span class="arch-node-icon">🚢</span>
-          <div class="arch-node-name">베셀(Vessel)</div>
-          <div class="arch-node-sub">GitHub 배포</div>
-        </div>
-        <div class="arch-arrow">→</div>
-        <div class="arch-node">
-          <span class="arch-node-icon">▲</span>
-          <div class="arch-node-name">Vercel</div>
-          <div class="arch-node-sub">Serverless</div>
-        </div>
-        <div class="arch-arrow">→</div>
-        <div class="arch-node highlight-g">
-          <span class="arch-node-icon">🤖</span>
-          <div class="arch-node-name">Gemini API</div>
-          <div class="arch-node-sub">AI 엔진</div>
-        </div>
-        <div class="arch-arrow">+</div>
-        <div class="arch-node highlight-n">
-          <span class="arch-node-icon">N</span>
-          <div class="arch-node-name">Naver API</div>
-          <div class="arch-node-sub">블로그·키워드</div>
-        </div>
-        <div class="arch-arrow">+</div>
-        <div class="arch-node">
-          <span class="arch-node-icon">📊</span>
-          <div class="arch-node-name">Yahoo Finance</div>
-          <div class="arch-node-sub">주식 데이터</div>
-        </div>
-        <div class="arch-arrow">+</div>
-        <div class="arch-node">
-          <span class="arch-node-icon">🏦</span>
-          <div class="arch-node-name">증권사 API</div>
-          <div class="arch-node-sub">자동 매매</div>
-        </div>
-      </div>
-
-      <div class="mod-divider"></div>
-
-      <div class="tech-grid">
-        <div class="tech-item">
-          <span class="tech-role">FRONTEND</span>
-          <span class="tech-name c-banana">Next.js 14</span>
-        </div>
-        <div class="tech-item">
-          <span class="tech-role">AI ENGINE</span>
-          <span class="tech-name c-gemini">Gemini 1.5</span>
-        </div>
-        <div class="tech-item">
-          <span class="tech-role">DEPLOY</span>
-          <span class="tech-name c-banana">Vercel + 베셀</span>
-        </div>
-        <div class="tech-item">
-          <span class="tech-role">BLOG AUTO</span>
-          <span class="tech-name c-naver">Naver API</span>
-        </div>
-        <div class="tech-item">
-          <span class="tech-role">STOCK DATA</span>
-          <span class="tech-name c-stock">Yahoo Finance</span>
-        </div>
-        <div class="tech-item">
-          <span class="tech-role">AUTO TRADE</span>
-          <span class="tech-name c-work">KIS Open API</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ROADMAP -->
-  <div class="module">
-    <div class="module-header">
-      <div class="mod-icon infra">🗺️</div>
-      <div>
-        <div class="mod-title">개발 로드맵</div>
-        <div class="mod-subtitle">단계별 빌드 계획</div>
-      </div>
-    </div>
-    <div class="module-body">
-      <div class="roadmap">
-        <div class="road-phase">
-          <div class="road-dot done">P1</div>
-          <div class="road-content">
-            <div class="road-phase-name">Phase 1 — 기반 구축</div>
-            <div class="road-items">베셀 GitHub 연동 · Gemini 채팅 UI · 기본 레이아웃</div>
-          </div>
-        </div>
-        <div class="road-phase">
-          <div class="road-dot active">P2</div>
-          <div class="road-content">
-            <div class="road-phase-name">Phase 2 — 주식 모듈</div>
-            <div class="road-items">시황 대시보드 · AI 목표가 분석 · 차트 연동</div>
-          </div>
-        </div>
-        <div class="road-phase">
-          <div class="road-dot next">P3</div>
-          <div class="road-content">
-            <div class="road-phase-name">Phase 3 — 업무 자동화</div>
-            <div class="road-items">키워드 분석 통합 · 광고 리포트 · SEO 생성기</div>
-          </div>
-        </div>
-        <div class="road-phase">
-          <div class="road-dot future">P4</div>
-          <div class="road-content">
-            <div class="road-phase-name">Phase 4 — 블로그 자동화</div>
-            <div class="road-items">Naver 계정 연동 · 자동 포스팅 · 스케줄러</div>
-          </div>
-        </div>
-        <div class="road-phase">
-          <div class="road-dot future">P5</div>
-          <div class="road-content">
-            <div class="road-phase-name">Phase 5 — 자동 매매</div>
-            <div class="road-items">증권사 API 연동 · 모의투자 검증 · 실투자 전환</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- AUTOMATION MATRIX -->
-  <div class="module">
-    <div class="module-header">
-      <div class="mod-icon infra">🔄</div>
-      <div>
-        <div class="mod-title">자동화 매트릭스</div>
-        <div class="mod-subtitle">기능별 자동화 수준</div>
-      </div>
-    </div>
-    <div class="module-body">
-      <table class="auto-table">
-        <thead>
-          <tr>
-            <th>기능</th>
-            <th>자동화 수준</th>
-            <th>우선순위</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>AI 답변 (제미나이)</td>
-            <td><span class="pill pill-g">완전 자동</span></td>
-            <td><span class="pill pill-y">HIGH</span></td>
-          </tr>
-          <tr>
-            <td>블로그 글 생성</td>
-            <td><span class="pill pill-g">완전 자동</span></td>
-            <td><span class="pill pill-y">HIGH</span></td>
-          </tr>
-          <tr>
-            <td>블로그 업로드</td>
-            <td><span class="pill pill-y">스케줄 자동</span></td>
-            <td><span class="pill pill-o">MED</span></td>
-          </tr>
-          <tr>
-            <td>주식 시황 수집</td>
-            <td><span class="pill pill-g">완전 자동</span></td>
-            <td><span class="pill pill-y">HIGH</span></td>
-          </tr>
-          <tr>
-            <td>AI 목표가 분석</td>
-            <td><span class="pill pill-y">트리거 자동</span></td>
-            <td><span class="pill pill-y">HIGH</span></td>
-          </tr>
-          <tr>
-            <td>자동 매수·매도</td>
-            <td><span class="pill pill-o">조건 자동</span></td>
-            <td><span class="pill pill-p">검증 후</span></td>
-          </tr>
-          <tr>
-            <td>광고 분석 리포트</td>
-            <td><span class="pill pill-y">스케줄 자동</span></td>
-            <td><span class="pill pill-o">MED</span></td>
-          </tr>
-          <tr>
-            <td>키워드 랭킹 추적</td>
-            <td><span class="pill pill-g">완전 자동</span></td>
-            <td><span class="pill pill-o">MED</span></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <div class="status-dot off" id="statusDot"></div>
+  <div class="status-text" id="statusText">API 키 미설정 · 키를 입력하고 저장하세요</div>
 </div>
 
-<!-- FOOTER -->
-<footer class="footer">
-  <div class="footer-left">
-    달콩이의 바나나 AI · PROJECT PLAN · 2026<br>
-    github → vessel → vercel
-  </div>
-  <div class="footer-right">
-    <div class="deploy-badge">
-      <div class="deploy-dot"></div>
-      베셀 배포 예정
-    </div>
-    <div class="deploy-badge">
-      🍌 달콩이 v1.0
-    </div>
-  </div>
-</footer>
+<script>
+  // ===== STATE =====
+  let apiKey = localStorage.getItem('gemini_api_key') || '';
+  let model = localStorage.getItem('gemini_model') || 'gemini-1.5-flash';
+  let history = [];
+  let isLoading = false;
 
+  const SYSTEM_PROMPT = `당신은 '달콩이'입니다. 마초킹님의 전용 AI 비서예요.
+성격: 친근하고 똑똑하며 실용적입니다. 이모지를 적절히 사용하고, 한국어로 답변합니다.
+역할: 주식 분석, 이커머스 전략(네이버 스마트스토어, 쿠팡), 마케팅, 업무 자동화, 블로그 작성 등을 도와줍니다.
+주인: 마초킹 (한국 이커머스 전문가, Fifine AM8 마이크 및 SoundPEATS T3 Pro 이어폰 유통 담당)
+말투: 친근하게 "~요" 체를 사용하고, 필요시 전문적인 분석도 제공합니다.
+항상 실용적이고 구체적인 답변을 제공하세요.`;
+
+  // ===== INIT =====
+  window.onload = () => {
+    if (apiKey) {
+      document.getElementById('apiKeyInput').value = apiKey;
+      document.getElementById('modelSelect').value = model;
+      setApiStatus(true);
+    }
+  };
+
+  // ===== PAGE SWITCH =====
+  function switchPage(name) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.sidebar-item').forEach(s => s.classList.remove('active'));
+    document.getElementById('page-' + name).classList.add('active');
+  }
+
+  // ===== API KEY =====
+  function saveApiKey() {
+    const key = document.getElementById('apiKeyInput').value.trim();
+    const m = document.getElementById('modelSelect').value;
+    if (!key) { alert('API 키를 입력해주세요.'); return; }
+    apiKey = key;
+    model = m;
+    localStorage.setItem('gemini_api_key', key);
+    localStorage.setItem('gemini_model', m);
+    setApiStatus(true);
+    addSystemMsg('✅ API 키가 저장됐어요! 이제 달콩이와 대화할 수 있어요 🍌');
+  }
+
+  function focusApiKey() {
+    switchPage('chat');
+    document.getElementById('apiKeyInput').focus();
+  }
+
+  function setApiStatus(on) {
+    document.getElementById('statusDot').className = 'status-dot ' + (on ? 'on' : 'off');
+    document.getElementById('statusText').textContent = on
+      ? `Gemini ${model} 연결됨 · 달콩이 대기중`
+      : 'API 키 미설정 · 키를 입력하고 저장하세요';
+  }
+
+  // ===== CHAT =====
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+
+  function sendQuick(text) {
+    document.getElementById('chatInput').value = text;
+    sendMessage();
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (!text || isLoading) return;
+    if (!apiKey) { alert('먼저 Gemini API 키를 입력하고 저장해주세요! 🔑'); focusApiKey(); return; }
+
+    // hide welcome
+    const welcome = document.getElementById('welcome');
+    if (welcome) welcome.style.display = 'none';
+
+    // add user msg
+    addMsg('user', text);
+    input.value = '';
+    input.style.height = 'auto';
+    history.push({ role: 'user', parts: [{ text }] });
+
+    // typing
+    isLoading = true;
+    document.getElementById('sendBtn').disabled = true;
+    const typingId = addTyping();
+
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+            contents: history,
+            generationConfig: { temperature: 0.8, maxOutputTokens: 2048 }
+          })
+        }
+      );
+      const data = await res.json();
+
+      removeTyping(typingId);
+
+      if (data.error) {
+        const errMsg = data.error.message || '알 수 없는 오류';
+        addMsg('ai', `❌ 오류가 발생했어요: ${errMsg}\n\nAPI 키를 확인하거나 모델을 Flash로 변경해보세요.`);
+        history.pop();
+      } else {
+        const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || '응답을 받지 못했어요.';
+        addMsg('ai', reply);
+        history.push({ role: 'model', parts: [{ text: reply }] });
+        // 히스토리 20개 제한
+        if (history.length > 40) history = history.slice(-40);
+      }
+    } catch (err) {
+      removeTyping(typingId);
+      addMsg('ai', `❌ 네트워크 오류가 발생했어요.\n\n${err.message}`);
+      history.pop();
+    }
+
+    isLoading = false;
+    document.getElementById('sendBtn').disabled = false;
+    document.getElementById('chatInput').focus();
+  }
+
+  function addMsg(role, text) {
+    const msgs = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = `msg ${role}`;
+    div.innerHTML = `
+      <div class="msg-avatar ${role}">${role === 'ai' ? '🍌' : '👤'}</div>
+      <div class="msg-content">
+        <div class="msg-name">${role === 'ai' ? '달콩이' : '마초킹'}</div>
+        <div class="msg-bubble">${escapeHtml(text)}</div>
+      </div>`;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    return div;
+  }
+
+  function addSystemMsg(text) {
+    const welcome = document.getElementById('welcome');
+    if (welcome) welcome.style.display = 'none';
+    addMsg('ai', text);
+  }
+
+  function addTyping() {
+    const msgs = document.getElementById('messages');
+    const id = 'typing-' + Date.now();
+    const div = document.createElement('div');
+    div.className = 'msg ai';
+    div.id = id;
+    div.innerHTML = `
+      <div class="msg-avatar ai">🍌</div>
+      <div class="msg-content">
+        <div class="msg-name">달콩이</div>
+        <div class="msg-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>
+      </div>`;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    return id;
+  }
+
+  function removeTyping(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  }
+
+  function clearChat() {
+    history = [];
+    const msgs = document.getElementById('messages');
+    msgs.innerHTML = `<div class="welcome" id="welcome">
+      <div class="welcome-emoji">🍌</div>
+      <div class="welcome-title">안녕하세요! <span style="color:var(--banana)">달콩이</span>예요</div>
+      <div class="welcome-sub">대화가 초기화됐어요. 무엇이든 물어보세요!</div>
+      <div class="welcome-chips">
+        <div class="chip" onclick="sendQuick('오늘 할 일 정리해줘')">📋 오늘 할 일 정리</div>
+        <div class="chip" onclick="sendQuick('네이버 스마트스토어 판매 전략 알려줘')">🛒 스마트스토어 전략</div>
+        <div class="chip" onclick="sendQuick('삼성전자 주식 현재 전망 분석해줘')">📈 주식 전망 분석</div>
+        <div class="chip" onclick="sendQuick('블로그 글 주제 추천해줘')">✍️ 블로그 주제 추천</div>
+      </div>
+    </div>`;
+  }
+
+  function escapeHtml(t) {
+    return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  }
+</script>
 </body>
 </html>
