@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>달콩이의 바나나 AI 🐻</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -131,7 +131,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 
 /* ── 자동매매 ── */
 .autowrap{display:flex;height:100%;overflow:hidden;}
-.auto-left{width:340px;border-right:1px solid var(--bd);display:flex;flex-direction:column;flex-shrink:0;}
+.auto-left{width:340px;border-right:1px solid var(--bd);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;}
 @media(max-width:700px){.auto-left{width:100%;border-right:none;}}
 .auto-right{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 .as-box{padding:10px 13px;border-bottom:1px solid var(--bd);position:relative;}
@@ -243,14 +243,13 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 .sndbtn:disabled{background:var(--bd);cursor:not-allowed;}
 .inphint{font-size:9px;color:var(--mu);margin-top:4px;text-align:center;}
 
-.hoga-sell-row{display:flex;align-items:center;padding:3px 8px;border-bottom:1px solid rgba(36,36,36,.4);background:rgba(239,68,68,.04);}
-.hoga-sell-row:last-child{border-bottom:none;}
-.hoga-buy-row{display:flex;align-items:center;padding:3px 8px;border-bottom:1px solid rgba(36,36,36,.4);background:rgba(34,197,94,.04);}
-.hoga-buy-row:last-child{border-bottom:none;}
-.hoga-qty{font-size:10px;font-family:'Space Mono',monospace;min-width:55px;text-align:right;color:var(--mu);}
-.hoga-price{font-size:11px;font-weight:700;font-family:'Space Mono',monospace;flex:1;text-align:center;}
-.hoga-bar-wrap{min-width:55px;height:8px;border-radius:3px;overflow:hidden;background:rgba(255,255,255,0.04);}
-.hoga-bar{height:100%;border-radius:3px;}
+.hoga-sell-row{display:grid;grid-template-columns:55px 1fr 55px;align-items:center;padding:4px 8px;border-bottom:1px solid rgba(36,36,36,.5);background:rgba(239,68,68,.05);}
+.hoga-buy-row{display:grid;grid-template-columns:55px 1fr 55px;align-items:center;padding:4px 8px;border-bottom:1px solid rgba(36,36,36,.5);background:rgba(34,197,94,.05);}
+.hoga-sell-row:last-child,.hoga-buy-row:last-child{border-bottom:none;}
+.hoga-qty{font-size:10px;font-family:'Space Mono',monospace;color:var(--mu);text-align:right;}
+.hoga-price{font-size:12px;font-weight:700;font-family:'Space Mono',monospace;text-align:center;}
+.hoga-bar-wrap{height:6px;border-radius:3px;overflow:hidden;background:rgba(255,255,255,0.06);}
+.hoga-bar{height:100%;border-radius:3px;transition:width .3s;}
 /* COMING SOON */
 .soon{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;}
 .soon-ico{font-size:40px;opacity:.3;}
@@ -264,6 +263,112 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 .sdot.off{background:var(--mu);}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .stxt{font-size:9px;color:var(--mu);font-family:'Space Mono',monospace;}
+
+/* ══════════════════════════════════
+   📱 모바일 최적화 (max-width: 768px)
+══════════════════════════════════ */
+@media(max-width:768px){
+  /* NAV */
+  .nav{height:auto;padding:8px 12px;flex-wrap:wrap;gap:6px;}
+  .nav-brand-title{font-size:12px;}
+  .nav-tabs{width:100%;display:grid;grid-template-columns:repeat(4,1fr);gap:3px;}
+  .ntab{font-size:10px;padding:6px 4px;border-radius:8px;text-align:center;}
+
+  /* STOCK 탭바 */
+  .stabs{height:auto;padding:6px 8px;flex-wrap:wrap;gap:4px;}
+  .stab{font-size:11px;padding:5px 10px;}
+  .stabs-right{width:100%;justify-content:flex-end;gap:5px;}
+  .lbadge{display:none;}
+
+  /* 티커바 */
+  .ti{min-width:90px;padding:5px 10px;}
+  .ti-p{font-size:11px;}
+
+  /* 관심종목 바 */
+  .wlbar{padding:6px 10px;gap:6px;}
+  .srchin{width:120px;}
+
+  /* 시황 그리드 → 1열 */
+  .mktgrid{grid-template-columns:1fr;padding:8px 10px;gap:8px;}
+
+  /* AI 분석 */
+  .aiwrap{padding:10px;gap:8px;}
+  .aisbar{gap:6px;}
+  .aisrchin{font-size:12px;padding:7px 10px;}
+  .search-btn,.ai-btn{padding:7px 12px;font-size:11px;}
+  .qchips{gap:4px;}
+  .qchip{font-size:10px;padding:4px 10px;}
+  .pbox{grid-template-columns:repeat(2,1fr);gap:5px;}
+  /* AI 분석 차트+결과 → 세로 배치 */
+  .aimain{grid-template-columns:1fr;gap:8px;}
+  .aichart-card{min-height:200px;}
+  .airesult-card{max-height:300px;min-height:150px;}
+
+  /* 자동매매 → 세로 배치 */
+  .autowrap{flex-direction:column;}
+  .auto-left{width:100%;border-right:none;border-bottom:1px solid var(--bd);max-height:420px;overflow-y:auto;}
+  .auto-right{flex:1;}
+  .minichartarea{padding:8px;}
+
+  /* 주문 폼 */
+  .ordform{padding:10px;gap:7px;}
+  .flbl{width:55px;font-size:10px;}
+  .fin{font-size:12px;padding:6px 8px;}
+  .psteps{gap:3px;}
+  .pstep{font-size:9px;padding:4px 2px;}
+
+  /* 잔고 */
+  .balwrap{padding:10px;gap:8px;}
+  .balsumm{grid-template-columns:repeat(2,1fr);gap:6px;}
+  .bxv{font-size:13px;}
+  .hhd,.hrow{grid-template-columns:2fr 1fr 1fr;font-size:10px;}
+  .hhd span:nth-child(3),.hrow span:nth-child(3),
+  .hhd span:nth-child(4),.hrow span:nth-child(4){display:none;}
+  .acctbar{gap:5px;}
+  .acctbar input{width:110px;}
+
+  /* 채팅 */
+  .chdr{padding:9px 12px;flex-wrap:wrap;gap:6px;}
+  .chdr-icon{width:30px;height:30px;font-size:14px;}
+  .chdr-title{font-size:12px;}
+  .chdr-sub{font-size:9px;}
+  .apiarea{width:100%;gap:5px;}
+  .apiin{flex:1;width:auto;font-size:10px;}
+  .apisave{font-size:10px;padding:5px 10px;}
+  .mdsel{font-size:10px;}
+  .msgs{padding:10px 12px;gap:10px;}
+  .welc-title{font-size:16px;}
+  .welc-sub{font-size:11px;}
+  .chips{gap:5px;}
+  .chip{font-size:10px;padding:4px 10px;}
+  .inparea{padding:6px 12px 10px;}
+  .inphint{font-size:9px;}
+
+  /* 현재가 패널 */
+  #autoStockInfo{padding:8px 10px;}
+  .ord-hd{padding:8px 10px;}
+  .ord-price{font-size:18px;}
+  .ordtabs .otab{font-size:11px;padding:7px;}
+
+  /* 호가창 */
+  .hoga-sell-row,.hoga-buy-row{padding:3px 6px;}
+  .hoga-price{font-size:11px;}
+  .hoga-qty{font-size:9px;}
+
+  /* 상태바 */
+  .sbar{padding:0 8px;gap:8px;}
+  .stxt{font-size:8px;}
+}
+
+/* ══ 아주 작은 화면 (max-width: 400px) ══ */
+@media(max-width:400px){
+  .ntab{font-size:9px;padding:5px 2px;}
+  .stab{font-size:10px;padding:4px 7px;}
+  .nav-brand-title{font-size:11px;}
+  .aisrchin{font-size:11px;}
+  .pbox{grid-template-columns:repeat(2,1fr);}
+  .balsumm{grid-template-columns:1fr 1fr;}
+}
 </style>
 </head>
 <body>
@@ -474,7 +579,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
             </div>
             <!-- 호가창 -->
             <div style="font-size:10px;color:var(--mu);margin-bottom:5px;font-weight:700;">📋 호가창</div>
-            <div id="hogaTable" style="border-radius:6px;overflow:hidden;border:1px solid var(--bd);">
+            <div id="hogaTable" style="border-radius:6px;overflow:hidden;border:1px solid var(--bd);max-height:220px;overflow-y:auto;">
               <!-- 매도 호가 5단계 -->
               <div id="sellHoga"></div>
               <!-- 현재가 라인 -->
@@ -1056,11 +1161,15 @@ function setAutoStock(name,code,mkt){
   document.getElementById('autoStockInfo').style.display='block';
   document.getElementById('autoStockNm').textContent=name;
   document.getElementById('autoStockCd').textContent=code;
+  window._hogaLoaded=false; // 새 종목이므로 호가 재로드
   loadAutoChart('1mo');
   refreshAutoPrice();
-  // 10초마다 현재가 자동갱신
+  // 30초마다 현재가 자동갱신 (초당 거래건수 초과 방지)
   if(window._autoPriceTimer)clearInterval(window._autoPriceTimer);
-  window._autoPriceTimer=setInterval(refreshAutoPrice,10000);
+  window._autoPriceTimer=setInterval(refreshAutoPrice,30000);
+  // 60초마다 호가 갱신
+  if(window._hogaTimer)clearInterval(window._hogaTimer);
+  window._hogaTimer=setInterval(()=>{if(kisToken&&autoTicker&&autoMkt==='kr')loadHoga();},60000);
 }
 
 async function refreshAutoPrice(){
@@ -1109,8 +1218,8 @@ async function refreshAutoPrice(){
         document.getElementById('autoHigh').textContent=high.toLocaleString();
         document.getElementById('autoLow').textContent=low.toLocaleString();
         document.getElementById('autoVol').textContent=vol.toLocaleString();
-        // KIS 호가 조회
-        loadHoga();
+        // 호가는 처음 한번만 로드 (타이머로 주기적 갱신)
+        if(!window._hogaLoaded){window._hogaLoaded=true;loadHoga();}
       }
     } else {
       // KIS 미연결 - Yahoo fallback
@@ -1130,14 +1239,18 @@ async function refreshAutoPrice(){
   }catch(e){console.log('autoPrice err',e);}
 }
 
-// KIS 호가 조회
+// KIS 호가 조회 (price_kr 별도 호출 없음 - 초당 거래건수 방지)
 async function loadHoga(){
-  if(!kisToken||!autoTicker||autoMkt!=='kr')return;
+  if(!kisToken||!autoTicker||autoMkt!=='kr'){renderSimpleHoga(autoPrice,autoMkt);return;}
   try{
     const r=await fetch('/api/stock?action=hoga',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:kisToken,ticker:autoTicker,mode:trMode})});
     const d=await r.json();
-    if(d.output1){renderHoga(d.output1,d.output2);}
-    else renderSimpleHoga(autoPrice,'kr');
+    if(d.output1&&parseInt(d.output1.askp1||0)>0){
+      renderHoga(d.output1,d.output2);
+    } else {
+      // 장외시간 또는 데이터 없을 때 간이 호가
+      renderSimpleHoga(autoPrice,'kr');
+    }
   }catch(e){renderSimpleHoga(autoPrice,'kr');}
 }
 
@@ -1187,7 +1300,7 @@ function calcSell(){const p=parseFloat(document.getElementById('sellPr').value)|
 
 async function placeOrd(type){
   if(!kisToken){alert('KIS 연결 먼저!');return;}
-  if(!acctNo){alert('잔고탭에서 계좌번호 저장해주세요!');return;}
+  if(!acctNo||acctNo.length<6){alert('잔고/주문 탭에서 계좌번호(8자리)를 먼저 저장해주세요!\n예: 12345678');return;}
   if(!autoTicker){alert('왼쪽에서 종목을 먼저 검색해주세요!');return;}
   const pr=type==='buy'?document.getElementById('buyPr').value:document.getElementById('sellPr').value;
   const qt=type==='buy'?document.getElementById('buyQt').value:document.getElementById('sellQt').value;
