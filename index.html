@@ -601,18 +601,16 @@
     const typingId = addTyping();
 
     try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-            contents: history,
-            generationConfig: { temperature: 0.8, maxOutputTokens: 2048 }
-          })
-        }
-      );
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiKey,
+          model,
+          messages: history,
+          systemPrompt: SYSTEM_PROMPT
+        })
+      });
       const data = await res.json();
 
       removeTyping(typingId);
