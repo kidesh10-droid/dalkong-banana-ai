@@ -393,7 +393,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
   <svg class="bear-logo" viewBox="0 0 28 28"><use href="#bear"/></svg>
   <div class="nav-brand">
     <div class="nav-brand-title">달콩이의 바나나 AI</div>
-    <div class="nav-brand-sub">v3.0 · GEMINI + KIS</div>
+    <div class="nav-brand-sub">v3.0</div>
   </div>
   <div class="nav-tabs">
     <button class="ntab on" data-pg="chat" onclick="switchPg(this)">🤖 AI채팅</button>
@@ -409,7 +409,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 <div class="pg on" id="pg-chat">
   <div class="chdr">
     <div class="chdr-icon"><svg width="18" height="18" viewBox="0 0 28 28"><use href="#bear"/></svg></div>
-    <div><div class="chdr-title">달콩이 전용 제미나이</div><div class="chdr-sub">이미지 분석 · 주식/이커머스 전문</div></div>
+    <div><div class="chdr-title">달콩이 전용 제미나이</div></div>
     <div class="apiarea">
       <select class="mdsel" id="mdSel"><option value="gemini-2.5-flash">Flash 2.5</option><option value="gemini-3-flash-preview">Flash 3</option><option value="gemini-1.5-flash-001">Flash 1.5</option></select>
       <input class="apiin" type="password" id="apiIn" placeholder="Gemini API Key..." />
@@ -681,11 +681,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 
 <!-- BLOG -->
 <div class="pg" id="pg-blog">
-  <div class="soon"><div class="soon-ico">📝</div><div class="soon-title">네이버 블로그 자동화</div><div class="soon-sub">AI 글 자동 생성 + 네이버 자동 업로드<br>스케줄링 발행 + SEO 최적화</div></div>
+  <div class="soon"><div class="soon-ico">📝</div><div class="soon-title">네이버 블로그 자동화</div></div>
 </div>
 <!-- WORK -->
 <div class="pg" id="pg-work">
-  <div class="soon"><div class="soon-ico">⚙️</div><div class="soon-title">업무 자동화 & 분석</div><div class="soon-sub">네이버 키워드 분석 + 광고 성과 리포트</div></div>
+  <div class="soon"><div class="soon-ico">⚙️</div><div class="soon-title">업무 자동화 & 분석</div></div>
 </div>
 
 </div><!-- /pages -->
@@ -741,8 +741,10 @@ const US=[
 const SYS=`당신은 '달콩이'입니다. 마초킹님의 전용 AI 비서예요.
 성격: 친근하고 실용적. 이모지 적절히 사용. 한국어 답변.
 주인: 마초킹 (한국 이커머스 전문가, Fifine AM8 마이크/SoundPEATS T3 Pro 이어폰 유통)
-【중요】 메시지에 [STOCK_DATA] 섹션이 있으면 그 실시간 데이터를 반드시 활용하여 구체적으로 답변하세요.
-절대로 "현재 주가를 알 수 없다", "증권사 앱을 확인하세요" 같은 답변 금지.
+【중요 규칙】
+1. 메시지에 [STOCK_DATA]가 있으면 반드시 그 실시간 데이터로 구체적으로 답변하세요. "현재 주가를 알 수 없다" 절대 금지.
+2. 메시지에 [NAVER_SEARCH_RESULTS]가 있으면 그 검색 결과를 바탕으로 답변하세요. 날씨, 뉴스 등 실시간 정보는 이 데이터를 활용하세요.
+3. 검색 결과가 없더라도 "모른다"고 하지 말고 아는 범위에서 최대한 도움이 되는 답변을 하세요.
 주식 분석 시 반드시 상세하게: 현재시황/기술적분석(지지저항선,매물대)/단기중기장기목표가/매수구간/리스크/최종의견 포함.`;
 
 // ════════════════ INIT ════════════════
@@ -1413,6 +1415,42 @@ function detectStock(txt){
   const all=[...KR,...US];
   return all.find(s=>txt.includes(s.n)||(s.c.length>=4&&txt.includes(s.c)))||null;
 }
+
+// 네이버 검색이 필요한 질문 감지
+function detectSearchQuery(txt){
+  const searchKws=[
+    '날씨','기온','강수','비','눈','맑','흐','황사','미세먼지',
+    '뉴스','최신','오늘','내일','이번주','이번달',
+    '맛집','식당','카페','음식점','추천',
+    '환율','금리','유가','원달러',
+    '코스피','코스닥','증시','시황',
+    '스포츠','경기','결과','순위',
+    '영화','공연','전시','이벤트',
+    '교통','지하철','버스','KTX',
+    '검색','찾아줘','알려줘','어때','어디'
+  ];
+  // 주식 관련은 별도 처리
+  const stockKws=['주가','시세','현재가'];
+  if(stockKws.some(k=>txt.includes(k)))return false;
+  return searchKws.some(k=>txt.includes(k));
+}
+
+// 네이버 검색 API 호출
+async function searchNaver(query){
+  try{
+    const r=await fetch('/api/stock?action=naver_search',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({query})
+    });
+    const d=await r.json();
+    if(d.items&&d.items.length>0){
+      return d.items.slice(0,5).map(x=>
+        `• ${x.title.replace(/<[^>]*>/g,'')} (${x.pubDate||x.link})`
+      ).join('\n');
+    }
+    return null;
+  }catch(e){return null;}
+}
 async function getStockData(s){
   try{
     const isKr=KR.find(x=>x.c===s.c);
@@ -1444,8 +1482,14 @@ async function sendMsg(){
   const w=document.getElementById('welc');if(w)w.style.display='none';
   if(selImg)addMsgImg('user',txt,document.getElementById('prevImg').src);else addMsg('user',txt);
   let etxt=txt;
+  // 주식 데이터 자동 조회
   const sf=detectStock(txt);
   if(sf){const sd=await getStockData(sf);if(sd)etxt=txt+'\n\n'+sd;}
+  // 네이버 검색 자동 연동 (날씨, 뉴스 등)
+  else if(detectSearchQuery(txt)){
+    const nr=await searchNaver(txt);
+    if(nr)etxt=txt+'\n\n[NAVER_SEARCH_RESULTS]\n'+nr+'\n[/NAVER_SEARCH_RESULTS]';
+  }
   const parts=[];if(selImg)parts.push({inlineData:selImg});parts.push({text:etxt});
   chatH.push({role:'user',parts});inp.value='';inp.style.height='auto';rmImg();
   isLoad=true;document.getElementById('sndbtn').disabled=true;
