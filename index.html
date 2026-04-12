@@ -243,6 +243,14 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 .sndbtn:disabled{background:var(--bd);cursor:not-allowed;}
 .inphint{font-size:9px;color:var(--mu);margin-top:4px;text-align:center;}
 
+.hoga-sell-row{display:flex;align-items:center;padding:3px 8px;border-bottom:1px solid rgba(36,36,36,.4);background:rgba(239,68,68,.04);}
+.hoga-sell-row:last-child{border-bottom:none;}
+.hoga-buy-row{display:flex;align-items:center;padding:3px 8px;border-bottom:1px solid rgba(36,36,36,.4);background:rgba(34,197,94,.04);}
+.hoga-buy-row:last-child{border-bottom:none;}
+.hoga-qty{font-size:10px;font-family:'Space Mono',monospace;min-width:55px;text-align:right;color:var(--mu);}
+.hoga-price{font-size:11px;font-weight:700;font-family:'Space Mono',monospace;flex:1;text-align:center;}
+.hoga-bar-wrap{min-width:55px;height:8px;border-radius:3px;overflow:hidden;background:rgba(255,255,255,0.04);}
+.hoga-bar{height:100%;border-radius:3px;}
 /* COMING SOON */
 .soon{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;}
 .soon-ico{font-size:40px;opacity:.3;}
@@ -433,11 +441,53 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
     <div class="autowrap">
       <div class="auto-left">
         <div class="as-box">
-          <input class="asin" id="asIn" placeholder="🔍 종목명/코드/티커 검색..." oninput="srch(this.value,'auto')" onblur="setTimeout(()=>hideDrop('asDrop'),200)"/>
+          <div style="display:flex;gap:6px;">
+            <input class="asin" id="asIn" placeholder="🔍 종목명/코드/티커..." oninput="srch(this.value,'auto')" onblur="setTimeout(()=>hideDrop('asDrop'),200)" onkeydown="if(event.key==='Enter'){hideDrop('asDrop');searchAutoStock();}" style="flex:1;"/>
+            <button onclick="searchAutoStock()" style="padding:7px 12px;border-radius:8px;border:none;background:var(--bl);color:#fff;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif;">조회</button>
+          </div>
           <div class="asdrop" id="asDrop"></div>
         </div>
         <div class="minichartarea">
-          <div style="display:flex;align-items:center;justify-content:space-between;">
+          <!-- 종목 현재가 요약 -->
+          <div id="autoStockInfo" style="display:none;background:var(--b3);border-radius:8px;padding:10px 12px;margin-bottom:8px;">
+            <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px;">
+              <span id="autoStockNm" style="font-size:13px;font-weight:700;"></span>
+              <span id="autoStockCd" style="font-size:10px;color:var(--mu);font-family:'Space Mono',monospace;"></span>
+            </div>
+            <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px;">
+              <span id="autoStockPr" style="font-size:22px;font-weight:900;font-family:'Space Mono',monospace;"></span>
+              <span id="autoStockChg" style="font-size:12px;font-family:'Space Mono',monospace;"></span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px;">
+              <div style="background:var(--b4);border-radius:6px;padding:5px 7px;text-align:center;">
+                <div style="font-size:9px;color:var(--mu);margin-bottom:2px;">고가</div>
+                <div id="autoHigh" style="font-size:11px;font-weight:700;font-family:'Space Mono',monospace;color:var(--up);">-</div>
+              </div>
+              <div style="background:var(--b4);border-radius:6px;padding:5px 7px;text-align:center;">
+                <div style="font-size:9px;color:var(--mu);margin-bottom:2px;">저가</div>
+                <div id="autoLow" style="font-size:11px;font-weight:700;font-family:'Space Mono',monospace;color:var(--dn);">-</div>
+              </div>
+              <div style="background:var(--b4);border-radius:6px;padding:5px 7px;text-align:center;">
+                <div style="font-size:9px;color:var(--mu);margin-bottom:2px;">거래량</div>
+                <div id="autoVol" style="font-size:11px;font-weight:700;font-family:'Space Mono',monospace;">-</div>
+              </div>
+            </div>
+            <!-- 호가창 -->
+            <div style="font-size:10px;color:var(--mu);margin-bottom:5px;font-weight:700;">📋 호가창</div>
+            <div id="hogaTable" style="border-radius:6px;overflow:hidden;border:1px solid var(--bd);">
+              <!-- 매도 호가 5단계 -->
+              <div id="sellHoga"></div>
+              <!-- 현재가 라인 -->
+              <div id="curPriceLine" style="display:flex;align-items:center;justify-content:center;padding:4px;background:rgba(255,225,53,0.12);border-top:1px solid rgba(255,225,53,0.3);border-bottom:1px solid rgba(255,225,53,0.3);">
+                <span id="hogaCurPrice" style="font-size:12px;font-weight:700;color:var(--y);font-family:'Space Mono',monospace;">-</span>
+              </div>
+              <!-- 매수 호가 5단계 -->
+              <div id="buyHoga"></div>
+            </div>
+            <div style="font-size:9px;color:var(--mu);margin-top:4px;text-align:right;" id="hogaTime"></div>
+          </div>
+          <!-- 차트 -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
             <span id="autoChartTitle" style="font-size:11px;font-weight:700;color:var(--mu);">종목을 검색하세요</span>
             <div class="pbts">
               <button class="pbt on" onclick="switchAutoPeriod(this,'1d')">1일</button>
@@ -445,7 +495,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
               <button class="pbt" onclick="switchAutoPeriod(this,'1mo')">1개월</button>
             </div>
           </div>
-          <div style="position:relative;flex:1;min-height:180px;background:var(--b3);border-radius:8px;padding:8px;">
+          <div style="position:relative;flex:1;min-height:150px;background:var(--b3);border-radius:8px;padding:8px;">
             <canvas id="autoChart"></canvas>
           </div>
         </div>
@@ -979,37 +1029,153 @@ async function refreshWl(){
 }
 
 // ════════════════ 자동매매 종목 ════════════════
+function searchAutoStock(){
+  const raw=document.getElementById('asIn').value.trim();
+  if(!raw)return;
+  hideDrop('asDrop');
+  // DB에서 찾기
+  const allDb=[...KR,...US];
+  const f=allDb.find(s=>s.n.toLowerCase().includes(raw.toLowerCase())||s.c.toLowerCase()===raw.toLowerCase()||s.c.toUpperCase()===raw.toUpperCase());
+  if(f){
+    const mkt=KR.find(x=>x.c===f.c)?'kr':'us';
+    setAutoStock(f.n,f.c,mkt);
+  } else {
+    // 직접 입력한 코드로 시도
+    const mkt=raw.match(/^[A-Za-z]+$/)?'us':'kr';
+    setAutoStock(raw,raw.toUpperCase(),mkt);
+  }
+}
+
 function setAutoStock(name,code,mkt){
   autoTicker=code;autoMkt=mkt;
   document.getElementById('autoChartTitle').textContent=name+' ('+code+')';
   document.getElementById('ordNm').textContent=name;
   document.getElementById('ordCd').textContent=code;
   document.getElementById('ordMkt').value=mkt;
+  // 종목 정보 패널 표시
+  document.getElementById('autoStockInfo').style.display='block';
+  document.getElementById('autoStockNm').textContent=name;
+  document.getElementById('autoStockCd').textContent=code;
   loadAutoChart('1mo');
   refreshAutoPrice();
+  // 10초마다 현재가 자동갱신
+  if(window._autoPriceTimer)clearInterval(window._autoPriceTimer);
+  window._autoPriceTimer=setInterval(refreshAutoPrice,10000);
 }
+
 async function refreshAutoPrice(){
   if(!autoTicker)return;
   try{
     if(autoMkt==='us'){
       const r=await fetch('/api/stock?action=market_us');const d=await r.json();
       const f=d.results?.find(x=>x.symbol===autoTicker);
-      if(f){autoPrice=f.price||0;const c=f.change?.toFixed(2)||0;const cl=c>=0?'up':'dn';
+      if(f){
+        autoPrice=f.price||0;
+        const c=parseFloat(f.change?.toFixed(2)||0);const cl=c>=0?'up':'dn';
+        // 오른쪽 헤더
         document.getElementById('ordPrice').textContent='$'+autoPrice.toFixed(2);
         document.getElementById('ordChg').className='ord-chg '+cl;
-        document.getElementById('ordChg').textContent=(c>=0?'+':'')+c+'%';}
+        document.getElementById('ordChg').textContent=(c>=0?'+':'')+c+'%';
+        // 왼쪽 현재가 패널
+        document.getElementById('autoStockPr').textContent='$'+autoPrice.toFixed(2);
+        document.getElementById('autoStockPr').className=cl;
+        document.getElementById('autoStockChg').textContent=(c>=0?'+':'')+c+'%';
+        document.getElementById('autoStockChg').className=cl;
+        document.getElementById('autoHigh').textContent='-';
+        document.getElementById('autoLow').textContent='-';
+        document.getElementById('autoVol').textContent='-';
+        // 미국 호가 (Yahoo 기반 간이 호가)
+        renderSimpleHoga(autoPrice, 'us');
+      }
     }else if(kisToken){
       const r=await fetch('/api/stock?action=price_kr',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:kisToken,ticker:autoTicker,mode:trMode})});
       const d=await r.json();
       if(d.output&&parseInt(d.output.stck_prpr||0)>0){
-        autoPrice=parseInt(d.output.stck_prpr);const c=parseFloat(d.output.prdy_ctrt||0);const cl=c>=0?'up':'dn';
+        autoPrice=parseInt(d.output.stck_prpr);
+        const c=parseFloat(d.output.prdy_ctrt||0);const cl=c>=0?'up':'dn';
+        const high=parseInt(d.output.stck_hgpr||0);
+        const low=parseInt(d.output.stck_lwpr||0);
+        const vol=parseInt(d.output.acml_vol||0);
+        // 오른쪽 헤더
         document.getElementById('ordPrice').textContent=autoPrice.toLocaleString()+'원';
         document.getElementById('ordChg').className='ord-chg '+cl;
         document.getElementById('ordChg').textContent=(c>=0?'+':'')+c.toFixed(2)+'%';
-        document.getElementById('ordExtra').textContent=`고: ${parseInt(d.output.stck_hgpr||0).toLocaleString()} / 저: ${parseInt(d.output.stck_lwpr||0).toLocaleString()} / 거래량: ${parseInt(d.output.acml_vol||0).toLocaleString()}`;
+        document.getElementById('ordExtra').textContent=`고: ${high.toLocaleString()} / 저: ${low.toLocaleString()} / 거래량: ${vol.toLocaleString()}`;
+        // 왼쪽 현재가 패널
+        document.getElementById('autoStockPr').textContent=autoPrice.toLocaleString()+'원';
+        document.getElementById('autoStockPr').className=cl;
+        document.getElementById('autoStockChg').textContent=(c>=0?'+':'')+c.toFixed(2)+'%';
+        document.getElementById('autoStockChg').className=cl;
+        document.getElementById('autoHigh').textContent=high.toLocaleString();
+        document.getElementById('autoLow').textContent=low.toLocaleString();
+        document.getElementById('autoVol').textContent=vol.toLocaleString();
+        // KIS 호가 조회
+        loadHoga();
+      }
+    } else {
+      // KIS 미연결 - Yahoo fallback
+      for(const sfx of ['.KS','.KQ']){
+        const r=await fetch(`/api/stock?action=chart&symbol=${autoTicker}${sfx}&range=2d`);
+        const d=await r.json();
+        if(d.closes&&d.closes.length>0){
+          autoPrice=Math.round(d.closes[d.closes.length-1]);
+          document.getElementById('ordPrice').textContent=autoPrice.toLocaleString()+'원';
+          document.getElementById('autoStockPr').textContent=autoPrice.toLocaleString()+'원';
+          document.getElementById('autoStockChg').textContent='(Yahoo)';
+          renderSimpleHoga(autoPrice,'kr');
+          break;
+        }
       }
     }
-  }catch(e){}
+  }catch(e){console.log('autoPrice err',e);}
+}
+
+// KIS 호가 조회
+async function loadHoga(){
+  if(!kisToken||!autoTicker||autoMkt!=='kr')return;
+  try{
+    const r=await fetch('/api/stock?action=hoga',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:kisToken,ticker:autoTicker,mode:trMode})});
+    const d=await r.json();
+    if(d.output1){renderHoga(d.output1,d.output2);}
+    else renderSimpleHoga(autoPrice,'kr');
+  }catch(e){renderSimpleHoga(autoPrice,'kr');}
+}
+
+// KIS 실제 호가 렌더링
+function renderHoga(o1,o2){
+  const cur=autoPrice;
+  // 매도 호가 (5~1 역순으로 위에서 아래)
+  const sells=[];
+  for(let i=5;i>=1;i--){sells.push({price:parseInt(o1[`askp${i}`]||0),qty:parseInt(o1[`askp_rsqn${i}`]||0)});}
+  // 매수 호가 (1~5)
+  const buys=[];
+  for(let i=1;i<=5;i++){buys.push({price:parseInt(o1[`bidp${i}`]||0),qty:parseInt(o1[`bidp_rsqn${i}`]||0)});}
+  const maxQty=Math.max(...sells.map(x=>x.qty),...buys.map(x=>x.qty),1);
+  document.getElementById('sellHoga').innerHTML=sells.map(s=>{
+    const bw=Math.round(s.qty/maxQty*100);
+    return`<div class="hoga-sell-row"><div class="hoga-bar-wrap" style="transform:scaleX(-1)"><div class="hoga-bar" style="width:${bw}%;background:rgba(239,68,68,0.4)"></div></div><div class="hoga-price up">${s.price.toLocaleString()}</div><div class="hoga-qty">${s.qty.toLocaleString()}</div></div>`;
+  }).join('');
+  document.getElementById('buyHoga').innerHTML=buys.map(b=>{
+    const bw=Math.round(b.qty/maxQty*100);
+    return`<div class="hoga-buy-row"><div class="hoga-qty">${b.qty.toLocaleString()}</div><div class="hoga-price dn">${b.price.toLocaleString()}</div><div class="hoga-bar-wrap"><div class="hoga-bar" style="width:${bw}%;background:rgba(34,197,94,0.4)"></div></div></div>`;
+  }).join('');
+  document.getElementById('hogaCurPrice').textContent=cur.toLocaleString()+'원';
+  document.getElementById('hogaTime').textContent='호가 기준: '+new Date().toLocaleTimeString('ko-KR');
+}
+
+// 간이 호가 (KIS 미연결 or 미국주식)
+function renderSimpleHoga(price,mkt){
+  if(!price||price<=0)return;
+  const unit=mkt==='kr'?(price>=500000?1000:price>=50000?100:price>=5000?10:price>=1000?5:1):0.01;
+  const sells=[];const buys=[];
+  for(let i=5;i>=1;i--){const p=mkt==='kr'?price+unit*i:parseFloat((price+unit*i).toFixed(2));sells.push({price:p,qty:Math.floor(Math.random()*5000+1000)});}
+  for(let i=1;i<=5;i++){const p=mkt==='kr'?price-unit*i:parseFloat((price-unit*i).toFixed(2));buys.push({price:p,qty:Math.floor(Math.random()*5000+1000)});}
+  const maxQty=Math.max(...sells.map(x=>x.qty),...buys.map(x=>x.qty));
+  const fmt=p=>mkt==='kr'?p.toLocaleString():p.toFixed(2);
+  document.getElementById('sellHoga').innerHTML=sells.map(s=>{const bw=Math.round(s.qty/maxQty*100);return`<div class="hoga-sell-row"><div class="hoga-bar-wrap" style="transform:scaleX(-1)"><div class="hoga-bar" style="width:${bw}%;background:rgba(239,68,68,0.4)"></div></div><div class="hoga-price up">${fmt(s.price)}</div><div class="hoga-qty">${s.qty.toLocaleString()}</div></div>`;}).join('');
+  document.getElementById('buyHoga').innerHTML=buys.map(b=>{const bw=Math.round(b.qty/maxQty*100);return`<div class="hoga-buy-row"><div class="hoga-qty">${b.qty.toLocaleString()}</div><div class="hoga-price dn">${fmt(b.price)}</div><div class="hoga-bar-wrap"><div class="hoga-bar" style="width:${bw}%;background:rgba(34,197,94,0.4)"></div></div></div>`;}).join('');
+  document.getElementById('hogaCurPrice').textContent=fmt(price)+(mkt==='kr'?'원':'$');
+  document.getElementById('hogaTime').textContent=(kisToken?'':'간이호가 · ')+new Date().toLocaleTimeString('ko-KR');
 }
 
 // 가격 조절
