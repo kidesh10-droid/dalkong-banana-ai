@@ -146,44 +146,63 @@ module.exports = async function handler(req, res) {
       return res.status(200).json(await sj(r));
     }
 
-    // 네이버 통합 검색 (날씨, 뉴스, 지식iN 등 - 채팅용)
+    // 날씨 + 네이버 통합 검색 (채팅용)
     if (action === 'naver_search') {
       const { query } = req.body;
       const cid = process.env.NAVER_CLIENT_ID||'';
       const csc = process.env.NAVER_CLIENT_SECRET||'';
-      if (!cid || !csc) return res.status(200).json({ error: 'NAVER API 키 없음' });
 
-      // 날씨 키워드면 날씨 검색
-      const isWeather = ['날씨','기온','강수','비','눈','맑','흐','황사','미세먼지'].some(k=>query.includes(k));
-      // 뉴스 키워드면 뉴스 검색
-      const isNews = ['뉴스','최신','속보'].some(k=>query.includes(k));
-
-      let endpoint;
-      if (isWeather) {
-        // 날씨는 지식iN 또는 뉴스로 검색
-        endpoint = `https://openapi.naver.com/v1/search/webkr.json?query=${encodeURIComponent(query)}&display=5&start=1`;
-      } else if (isNews) {
-        endpoint = `https://openapi.naver.com/v1/search/news.json?query=${encodeURIComponent(query)}&display=5&sort=date`;
-      } else {
-        // 기본: 웹 검색
-        endpoint = `https://openapi.naver.com/v1/search/webkr.json?query=${encodeURIComponent(query)}&display=5&start=1`;
-      }
+      const isWeather = ['날씨','기온','강수','비','눈','맑','흐','황사','미세먼지','예보','기상'].some(k=>query.includes(k));
+      const isNews = ['뉴스','최신','속보','오늘'].some(k=>query.includes(k));
 
       try {
-        const r = await fetch(endpoint, {
-          headers: { 'X-Naver-Client-Id': cid, 'X-Naver-Client-Secret': csc }
-        });
-        const d = await sj(r);
-        // 뉴스도 병렬로 추가 조회
-        if (!isNews) {
-          const r2 = await fetch(`https://openapi.naver.com/v1/search/news.json?query=${encodeURIComponent(query)}&display=3&sort=date`, {
-            headers: { 'X-Naver-Client-Id': cid, 'X-Naver-Client-Secret': csc }
-          });
+        // ── 날씨: 네이버 검색으로 실제 날씨 정보 가져오기 ──
+        if (isWeather) {
+          // 네이버 검색 + 지식iN 병렬 조회
+          const [r1, r2] = await Promise.all([
+            fetch(`https://openapi.naver.com/v1/search/webkr.json?query=${encodeURIComponent(query)}&display=5`,
+              { headers:{'X-Naver-Client-Id':cid,'X-Naver-Client-Secret':csc} }),
+            fetch(`https://openapi.naver.com/v1/search/news.json?query=${encodeURIComponent(query)}&display=5&sort=date`,
+              { headers:{'X-Naver-Client-Id':cid,'X-Naver-Client-Secret':csc} })
+          ]);
+          const d1 = await sj(r1);
           const d2 = await sj(r2);
-          const combined = [...(d.items||[]), ...(d2.items||[])];
-          return res.status(200).json({ items: combined });
+          // 웹 결과에서 날씨 관련 스니펫 추출
+          const webItems = (d1.items||[]).map(x=>({
+            title: x.title.replace(/<[^>]*>/g,'').replace(/&[^;]+;/g,''),
+            desc: (x.description||'').replace(/<[^>]*>/g,'').replace(/&[^;]+;/g,'').slice(0,150)
+          }));
+          const newsItems = (d2.items||[]).map(x=>({
+            title: x.title.replace(/<[^>]*>/g,'').replace(/&[^;]+;/g,''),
+            desc: (x.description||'').replace(/<[^>]*>/g,'').replace(/&[^;]+;/g,'').slice(0,100),
+            date: x.pubDate||''
+          }));
+          return res.status(200).json({
+            type: 'weather_search',
+            query,
+            web: webItems,
+            news: newsItems,
+            fetchedAt: new Date().toLocaleString('ko-KR', {timeZone:'Asia/Seoul'})
+          });
         }
-        return res.status(200).json(d);
+
+        // ── 뉴스 검색 ──
+        if (isNews) {
+          const r = await fetch(`https://openapi.naver.com/v1/search/news.json?query=${encodeURIComponent(query)}&display=5&sort=date`,
+            { headers:{'X-Naver-Client-Id':cid,'X-Naver-Client-Secret':csc} });
+          const d = await sj(r);
+          return res.status(200).json({ type:'news', items: d.items||[] });
+        }
+
+        // ── 일반 검색: 뉴스 + 웹검색 병렬 ──
+        const [r1,r2] = await Promise.all([
+          fetch(`https://openapi.naver.com/v1/search/news.json?query=${encodeURIComponent(query)}&display=4&sort=date`, { headers:{'X-Naver-Client-Id':cid,'X-Naver-Client-Secret':csc} }),
+          cid?fetch(`https://openapi.naver.com/v1/search/webkr.json?query=${encodeURIComponent(query)}&display=3`, { headers:{'X-Naver-Client-Id':cid,'X-Naver-Client-Secret':csc} }):Promise.resolve(null)
+        ]);
+        const d1 = await sj(r1);
+        const d2 = r2 ? await sj(r2) : { items:[] };
+        return res.status(200).json({ type:'search', items:[...(d1.items||[]),...(d2.items||[])] });
+
       } catch(e) {
         return res.status(200).json({ error: e.message });
       }
