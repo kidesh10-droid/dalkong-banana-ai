@@ -63,6 +63,34 @@ module.exports = async function handler(req, res) {
       const r = await fetch(`${cfg.base}/uapi/domestic-stock/v1/trading/order-cash`, { method: 'POST', headers: { 'content-type': 'application/json', 'authorization': `Bearer ${token}`, 'appkey': cfg.key, 'appsecret': cfg.secret, 'tr_id': tr_id }, body: JSON.stringify({ CANO: accountNo, ACNT_PRDT_CD: accountProduct || '01', PDNO: ticker, ORD_DVSN: orderType || '00', ORD_QTY: String(qty), ORD_UNPR: String(price) }) });
       return res.status(200).json(await r.json());
     }
+    // 국내 랭킹 (거래대금/상승률/하락률) - 장외시간/휴장일 포함
+    if (action === 'rank_kr') {
+      const { token, type, mode } = req.body;
+      const cfg = mode === 'real' ? KIS_REAL : KIS_MOCK;
+      // 정렬: 1=거래대금, 2=상승률, 4=하락률
+      const sortMap = { vol: '1', rise: '2', fall: '4' };
+      const sortCd = sortMap[type] || '1';
+      // 장중/장외 모두 조회 가능한 등락률 순위 API
+      const url = `${cfg.base}/uapi/domestic-stock/v1/ranking/fluctuation?fid_cond_mrkt_div_code=J&fid_cond_scr_div_code=20171&fid_input_iscd=0000&fid_rank_sort_cls_code=${sortCd}&fid_input_cnt_1=10&fid_prc_cls_code=1&fid_input_price_1=1000&fid_input_price_2=&fid_vol_cnt=10000&fid_trgt_cls_code=4&fid_trgt_exls_cls_code=0&fid_div_cls_code=0&fid_rsfl_rate1=&fid_rsfl_rate2=`;
+      const r = await fetch(url, {
+        headers: {
+          'content-type': 'application/json',
+          'authorization': `Bearer ${token}`,
+          'appkey': cfg.key,
+          'appsecret': cfg.secret,
+          'tr_id': 'FHPST01720000',
+          'custtype': 'P'
+        }
+      });
+      const text = await r.text();
+      try {
+        const data = JSON.parse(text);
+        return res.status(200).json(data);
+      } catch(e) {
+        return res.status(200).json({ error: text.slice(0, 200) });
+      }
+    }
+
     // 잔고 조회
     if (action === 'balance') {
       const { token, mode, accountNo, accountProduct } = req.body;
