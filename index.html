@@ -1024,6 +1024,8 @@ function saveAcct(){
   localStorage.setItem('ka',acctNo);localStorage.setItem('kp',acctProd);
   document.getElementById('acctSaved').style.display='inline';
   setTimeout(()=>document.getElementById('acctSaved').style.display='none',2000);
+  // 자동매매탭 주문에도 즉시 반영
+  console.log('계좌번호 저장:', acctNo, '상품코드:', acctProd);
 }
 async function initKIS(){
   document.getElementById('kbtn').textContent='연결중...';
@@ -1165,7 +1167,10 @@ function setAutoStock(name,code,mkt){
   document.getElementById('autoStockInfo').style.display='block';
   document.getElementById('autoStockNm').textContent=name;
   document.getElementById('autoStockCd').textContent=code;
-  window._hogaLoaded=false; // 새 종목이므로 호가 재로드
+  // 호가창 초기화 (새 종목)
+  document.getElementById('sellHoga').innerHTML='';
+  document.getElementById('buyHoga').innerHTML='';
+  document.getElementById('hogaCurPrice').textContent='조회중...';
   loadAutoChart('1mo');
   refreshAutoPrice();
   // 30초마다 현재가 자동갱신 (초당 거래건수 초과 방지)
@@ -1222,8 +1227,8 @@ async function refreshAutoPrice(){
         document.getElementById('autoHigh').textContent=high.toLocaleString();
         document.getElementById('autoLow').textContent=low.toLocaleString();
         document.getElementById('autoVol').textContent=vol.toLocaleString();
-        // 호가는 처음 한번만 로드 (타이머로 주기적 갱신)
-        if(!window._hogaLoaded){window._hogaLoaded=true;loadHoga();}
+        // 호가 로드 (장중이면 KIS, 장외면 간이호가)
+        loadHoga();
       }
     } else {
       // KIS 미연결 - Yahoo fallback
@@ -1243,16 +1248,25 @@ async function refreshAutoPrice(){
   }catch(e){console.log('autoPrice err',e);}
 }
 
-// KIS 호가 조회 (price_kr 별도 호출 없음 - 초당 거래건수 방지)
-async function loadHoga(){
-  if(!kisToken||!autoTicker||autoMkt!=='kr'){renderSimpleHoga(autoPrice,autoMkt);return;}
+// KIS 호가 조회
+async async function loadHoga(){
+  // 가격 없으면 먼저 패스
+  if(!autoPrice||autoPrice<=0){
+    document.getElementById('hogaTable').innerHTML='<div style="padding:12px;text-align:center;font-size:10px;color:var(--mu);">종목을 조회하세요</div>';
+    return;
+  }
+  // 미국 or KIS 미연결이면 바로 간이호가
+  if(autoMkt==='us'||!kisToken){renderSimpleHoga(autoPrice,autoMkt);return;}
+  // KIS 호가 시도
   try{
     const r=await fetch('/api/stock?action=hoga',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:kisToken,ticker:autoTicker,mode:trMode})});
     const d=await r.json();
-    if(d.output1&&parseInt(d.output1.askp1||0)>0){
+    // 실제 호가 데이터 확인 (askp1이 0이 아닌 경우)
+    const askp1=parseInt(d.output1?.askp1||0);
+    if(askp1>0){
       renderHoga(d.output1,d.output2);
     } else {
-      // 장외시간 또는 데이터 없을 때 간이 호가
+      // 장외시간 - 종가 기준 간이호가 표시
       renderSimpleHoga(autoPrice,'kr');
     }
   }catch(e){renderSimpleHoga(autoPrice,'kr');}
@@ -1292,7 +1306,15 @@ function renderSimpleHoga(price,mkt){
   document.getElementById('sellHoga').innerHTML=sells.map(s=>{const bw=Math.round(s.qty/maxQty*100);return`<div class="hoga-sell-row"><div class="hoga-bar-wrap" style="transform:scaleX(-1)"><div class="hoga-bar" style="width:${bw}%;background:rgba(239,68,68,0.4)"></div></div><div class="hoga-price up">${fmt(s.price)}</div><div class="hoga-qty">${s.qty.toLocaleString()}</div></div>`;}).join('');
   document.getElementById('buyHoga').innerHTML=buys.map(b=>{const bw=Math.round(b.qty/maxQty*100);return`<div class="hoga-buy-row"><div class="hoga-qty">${b.qty.toLocaleString()}</div><div class="hoga-price dn">${fmt(b.price)}</div><div class="hoga-bar-wrap"><div class="hoga-bar" style="width:${bw}%;background:rgba(34,197,94,0.4)"></div></div></div>`;}).join('');
   document.getElementById('hogaCurPrice').textContent=fmt(price)+(mkt==='kr'?'원':'$');
-  document.getElementById('hogaTime').textContent=(kisToken?'':'간이호가 · ')+new Date().toLocaleTimeString('ko-KR');
+  const isMarketOpen = ()=>{
+    const now=new Date(); const h=now.getHours(); const m=now.getMinutes();
+    const day=now.getDay(); // 0=일,6=토
+    if(day===0||day===6) return false;
+    const t=h*60+m;
+    return t>=540&&t<=930; // 9:00~15:30
+  };
+  const status=isMarketOpen()?'장중':'장외(종가기준)';
+  document.getElementById('hogaTime').textContent=status+' · '+new Date().toLocaleTimeString('ko-KR');
 }
 
 // 가격 조절
@@ -1304,7 +1326,16 @@ function calcSell(){const p=parseFloat(document.getElementById('sellPr').value)|
 
 async function placeOrd(type){
   if(!kisToken){alert('KIS 연결 먼저!');return;}
-  if(!acctNo||acctNo.length<6){alert('잔고/주문 탭에서 계좌번호(8자리)를 먼저 저장해주세요!\n예: 12345678');return;}
+  // 계좌번호 최신값으로 동기화
+  const fromInput = document.getElementById('acctNo')?.value?.trim();
+  const fromStorage = localStorage.getItem('ka')||'';
+  acctNo = fromInput||fromStorage||acctNo;
+  acctProd = document.getElementById('acctProd')?.value||localStorage.getItem('kp')||'01';
+  console.log('주문 시 계좌번호:', acctNo, '상품코드:', acctProd);
+  if(!acctNo||acctNo.length<6){
+    alert('계좌번호(8자리)를 입력해주세요!\n\n잔고/주문 탭 → 계좌번호 입력 → 저장 클릭 후 주문하세요.');
+    return;
+  }
   if(!autoTicker){alert('왼쪽에서 종목을 먼저 검색해주세요!');return;}
   const pr=type==='buy'?document.getElementById('buyPr').value:document.getElementById('sellPr').value;
   const qt=type==='buy'?document.getElementById('buyQt').value:document.getElementById('sellQt').value;
