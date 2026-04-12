@@ -432,8 +432,8 @@
         </div>
         <div class="api-key-area">
           <select class="model-select" id="modelSelect">
-            <option value="gemini-2.0-flash">Flash 2.0 (빠름)</option>
-            <option value="gemini-2.0-flash-lite">Flash Lite (가벼움)</option>
+            <option value="gemini-2.0-flash-lite">Flash 2.0 Lite (추천)</option>
+            <option value="gemini-2.5-flash-preview-04-17">Flash 2.5 Preview</option>
             <option value="gemini-1.5-flash-latest">Flash 1.5</option>
             <option value="gemini-1.5-pro-latest">Pro 1.5 (정확)</option>
           </select>
@@ -511,7 +511,7 @@
 <script>
   // ===== STATE =====
   let apiKey = localStorage.getItem('gemini_api_key') || '';
-  let model = localStorage.getItem('gemini_model') || 'gemini-2.0-flash';
+  let model = localStorage.getItem('gemini_model') || 'gemini-2.0-flash-lite';
   let history = [];
   let isLoading = false;
 
