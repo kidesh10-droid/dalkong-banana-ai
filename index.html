@@ -634,13 +634,20 @@ const SYSTEM_PROMPT = `당신은 '달콩이'입니다. 마초킹님의 전용 AI
 // INIT
 // ════════════════════════════════════════
 window.onload = () => {
-  if(apiKey){document.getElementById('apiKeyInput').value=apiKey;document.getElementById('modelSelect').value=model;setStat(true);}
+  // Gemini API 키 자동 로드 (저장된 키 자동 입력)
+  if(apiKey){
+    document.getElementById('apiKeyInput').value=apiKey;
+    document.getElementById('modelSelect').value=model;
+    setStat(true);
+    addSysMsg('🐻 달콩이 준비 완료! 저장된 API 키로 자동 연결됐어요.');
+  }
   if(acctNo){document.getElementById('acctNo').value=acctNo;}
-  loadUs(); loadNews();
-  renderWlChips();
+  loadUs(); loadNews(); renderWlChips();
+  // 30초마다 자동갱신
   setInterval(()=>{
     if(document.getElementById('page-stock').classList.contains('active')){
       loadUs(); refreshWl();
+      if(kisToken){loadKrRank('vol');loadKrRank('rise');loadKrRank('fall');}
       document.getElementById('lastUpd').textContent='갱신:'+new Date().toLocaleTimeString();
     }
   },30000);
@@ -832,30 +839,37 @@ async function loadUs(){
 }
 
 // ════════════════════════════════════════
-// KIS 국내 랭킹 (종가 기준)
+// KIS 국내 랭킹 (백엔드 프록시 경유 - CORS 해결)
 // ════════════════════════════════════════
 async function loadKrRank(type){
   if(!kisToken)return;
-  const elMap={vol:'mktGrid',rise:'mktGrid',fall:'mktGrid'};
-  const sortCd={vol:'1',rise:'2',fall:'4'};
-  const titleMap={vol:'🔥 거래대금 상위',rise:'📈 상승률 상위',fall:'📉 하락률 상위'};
   const idMap={vol:0,rise:1,fall:2};
+  const cards=document.querySelectorAll('.mkt-card');
+  const card=cards[idMap[type]];
+  if(card) card.querySelector('.mkt-card-bd').innerHTML='<div style="font-size:10px;color:var(--muted);">조회중...</div>';
   try{
-    const base=tradeMode==='real'?'https://openapi.koreainvestment.com:9443':'https://openapivts.koreainvestment.com:29443';
-    const appKey=tradeMode==='real'?'PS0vg5qZtNsVLqFPFmZH9nyRv2wmiuKC1vnr':'PS7Uw7ofXyhWd96KqeFb5dPJFKIr0iD55sUo';
-    const r=await fetch(`${base}/uapi/domestic-stock/v1/ranking/fluctuation?fid_cond_mrkt_div_code=J&fid_cond_scr_div_code=20171&fid_input_iscd=0000&fid_rank_sort_cls_code=${sortCd[type]}&fid_input_cnt_1=5&fid_prc_cls_code=1&fid_input_price_1=1000&fid_input_price_2=&fid_vol_cnt=100000&fid_trgt_cls_code=4&fid_trgt_exls_cls_code=0&fid_div_cls_code=0&fid_rsfl_rate1=&fid_rsfl_rate2=`,{
-      headers:{'authorization':'Bearer '+kisToken,'appkey':appKey,'appsecret':'','tr_id':'FHPST01720000','content-type':'application/json'}
+    const r=await fetch('/api/stock?action=rank_kr',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({token:kisToken,type,mode:tradeMode})
     });
     const d=await r.json();
-    const cards=document.querySelectorAll('.mkt-card');
-    const card=cards[idMap[type]];
     if(d.output&&d.output.length>0&&card){
-      card.querySelector('.mkt-card-bd').innerHTML='<div class="rank-row" style="flex-direction:column;gap:0;">'+d.output.slice(0,5).map((s,i)=>{
-        const c=parseFloat(s.prdy_ctrt||0);const cls=c>=0?'up':'down';const sg=c>=0?'+':'';
-        return`<div class="rank-row" style="cursor:pointer;" onclick="doAi('${s.hts_kor_isnm}','${s.mksc_shrn_iscd}','kr')"><span class="rn">${i+1}</span><span class="rname">${s.hts_kor_isnm}</span><span class="rprice">${parseInt(s.stck_prpr||0).toLocaleString()}원</span><span class="rchg ${cls}">${sg}${c.toFixed(2)}%</span></div>`;
-      }).join('')+'</div>';
+      const label = type==='vol'?'거래대금':type==='rise'?'전일종가':'전일종가';
+      card.querySelector('.mkt-card-bd').innerHTML=
+        '<div style="font-size:9px;color:var(--muted);margin-bottom:6px;">📅 '+label+' 기준 (장외/휴장일 포함)</div>'+
+        d.output.slice(0,5).map((s,i)=>{
+          const c=parseFloat(s.prdy_ctrt||0);const cls=c>=0?'up':'down';const sg=c>=0?'+':'';
+          const nm=s.hts_kor_isnm||s.mksc_shrn_iscd||'-';
+          const cd=s.mksc_shrn_iscd||'';
+          return`<div class="rank-row" style="cursor:pointer;" onclick="doAi('${nm}','${cd}','kr')"><span class="rn">${i+1}</span><span class="rname">${nm}</span><span class="rprice">${parseInt(s.stck_prpr||0).toLocaleString()}원</span><span class="rchg ${cls}">${sg}${c.toFixed(2)}%</span></div>`;
+        }).join('');
+    } else if(card){
+      const msg=d.msg1||d.message||JSON.stringify(d).slice(0,80);
+      card.querySelector('.mkt-card-bd').innerHTML=`<div style="font-size:10px;color:var(--muted);">데이터 없음: ${msg}</div>`;
     }
-  }catch(e){console.log('rank err',e);}
+  }catch(e){
+    if(card) card.querySelector('.mkt-card-bd').innerHTML=`<div style="font-size:10px;color:#EF4444;">오류: ${e.message}</div>`;
+  }
 }
 
 // ════════════════════════════════════════
