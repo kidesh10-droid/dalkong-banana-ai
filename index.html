@@ -78,7 +78,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .news-ttl{font-size:11px;line-height:1.5;margin-bottom:2px;}
 .news-meta{font-size:9px;color:var(--muted);}
 /* ═══ AI 분석 탭 ═══ */
-.ai-wrap{padding:16px;display:flex;flex-direction:column;gap:12px;}
+.ai-wrap{padding:16px;display:flex;flex-direction:column;gap:12px;flex:1;min-height:0;overflow:hidden;}
 .ai-search-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 .ai-search-wrap{position:relative;flex:1;min-width:200px;}
 .ai-search{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 14px;font-size:13px;color:var(--text);outline:none;width:100%;}
@@ -91,9 +91,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .ai-quick-chips{display:flex;gap:6px;flex-wrap:wrap;}
 .qchip{background:var(--bg3);border:1px solid var(--border);border-radius:100px;padding:5px 12px;font-size:11px;color:var(--muted);cursor:pointer;transition:all .15s;}
 .qchip:hover{border-color:var(--banana);color:var(--banana);}
-.ai-main{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.ai-chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;}
-.ai-result-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;overflow-y:auto;max-height:500px;}
+.ai-main{display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:1;min-height:0;}
+.ai-chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;flex-direction:column;}
+.ai-result-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;overflow-y:auto;flex:1;min-height:0;}
 .ai-card-title{font-size:12px;font-weight:700;color:var(--banana);margin-bottom:10px;}
 .ai-result-text{font-size:12px;line-height:1.8;white-space:pre-wrap;color:var(--text);}
 .price-box{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px;}
@@ -364,7 +364,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     <div class="ai-wrap">
       <div class="ai-search-bar">
         <div class="ai-search-wrap">
-          <input class="ai-search" id="aiSearchIn" placeholder="종목명, 코드, 영문 티커 검색 (삼성전자, 005930, AAPL...)" oninput="searchStock(this.value,'ai')" onblur="setTimeout(()=>hideDropAi(),200)" />
+          <input class="ai-search" id="aiSearchIn" placeholder="종목명, 코드, 영문 티커 검색 (삼성전자, 005930, AAPL...)" oninput="searchStock(this.value,'ai')" onblur="setTimeout(()=>hideDropAi(),200)" onkeydown="if(event.key==='Enter'){hideDropAi();analyzeStock();}" style="padding-right:14px;" />
           <div class="ai-search-drop" id="aiDrop"></div>
         </div>
         <select class="mini-select" id="aiMkt" style="padding:7px 10px;font-size:12px;"><option value="kr">🇰🇷 한국</option><option value="us">🇺🇸 미국</option></select>
@@ -824,18 +824,26 @@ async function initKIS(){
 // ════════════════════════════════════════
 async function loadUs(){
   try{
+    // 미국 시황
     const r=await fetch('/api/stock?action=market_us');const d=await r.json();
-    if(!d.results)return;
-    const nm={'^GSPC':'S&P500','^IXIC':'NASDAQ','^DJI':'DOW Jones',AAPL:'Apple',TSLA:'Tesla',NVDA:'NVIDIA',MSFT:'Microsoft',AMZN:'Amazon'};
-    document.getElementById('tickerStrip').innerHTML=d.results.map(r=>{
-      if(r.error)return'';const c=r.change?.toFixed(2)||0;const cls=c>=0?'up':'down';const s=c>=0?'+':'';
-      return`<div class="ti"><div class="ti-name">${nm[r.symbol]||r.symbol}</div><div class="ti-price ${cls}">${r.price?.toLocaleString()||'-'}</div><div class="ti-chg ${cls}">${s}${c}%</div></div>`;
-    }).join('');
-    document.getElementById('usCard').innerHTML=d.results.map(r=>{
-      if(r.error)return'';const c=r.change?.toFixed(2)||0;const cls=c>=0?'up':'down';const s=c>=0?'+':'';
-      return`<div class="rank-row"><span class="rname">${nm[r.symbol]||r.symbol}</span><span class="rprice">${r.price?.toLocaleString()||'-'}</span><span class="rchg ${cls}">${s}${c}%</span></div>`;
-    }).join('');
-  }catch(e){}
+    const nm={'^GSPC':'S&P500','^IXIC':'NASDAQ','^DJI':'DOW',AAPL:'Apple',TSLA:'Tesla',NVDA:'NVIDIA',MSFT:'Microsoft',AMZN:'Amazon'};
+    // 코스피/코스닥 + 환율 + 비트코인
+    const kr = await fetch('/api/stock?action=market_kr');const kd=await kr.json();
+    // 티커 바 조합
+    let tickerHtml = '';
+    // 코스피/코스닥
+    if(kd.kospi){const c=parseFloat(kd.kospi.chg||0);const cls=c>=0?'up':'down';const s=c>=0?'+':'';tickerHtml+=`<div class="ti" style="min-width:110px;"><div class="ti-name">KOSPI</div><div class="ti-price ${cls}">${parseFloat(kd.kospi.price||0).toLocaleString()}</div><div class="ti-chg ${cls}">${s}${c.toFixed(2)}%</div></div>`;}
+    if(kd.kosdaq){const c=parseFloat(kd.kosdaq.chg||0);const cls=c>=0?'up':'down';const s=c>=0?'+':'';tickerHtml+=`<div class="ti" style="min-width:110px;"><div class="ti-name">KOSDAQ</div><div class="ti-price ${cls}">${parseFloat(kd.kosdaq.price||0).toLocaleString()}</div><div class="ti-chg ${cls}">${s}${c.toFixed(2)}%</div></div>`;}
+    // 환율
+    if(kd.usdkrw){tickerHtml+=`<div class="ti" style="min-width:110px;"><div class="ti-name">USD/KRW</div><div class="ti-price">${parseFloat(kd.usdkrw.price||0).toLocaleString()}</div><div class="ti-chg" style="color:var(--muted);">환율</div></div>`;}
+    // 비트코인
+    if(kd.btc){const c=parseFloat(kd.btc.chg||0);const cls=c>=0?'up':'down';const s=c>=0?'+':'';tickerHtml+=`<div class="ti" style="min-width:120px;"><div class="ti-name">BTC/KRW</div><div class="ti-price ${cls}">${Math.round(parseFloat(kd.btc.price||0)).toLocaleString()}</div><div class="ti-chg ${cls}">${s}${c.toFixed(2)}%</div></div>`;}
+    // 미국 지수
+    if(d.results){d.results.filter(r=>!r.error).forEach(r=>{const c=parseFloat(r.change?.toFixed(2)||0);const cls=c>=0?'up':'down';const s=c>=0?'+':'';tickerHtml+=`<div class="ti"><div class="ti-name">${nm[r.symbol]||r.symbol}</div><div class="ti-price ${cls}">${r.price?.toLocaleString()||'-'}</div><div class="ti-chg ${cls}">${s}${c}%</div></div>`;});}
+    document.getElementById('tickerStrip').innerHTML=tickerHtml||'<div style="padding:8px 18px;font-size:10px;color:var(--muted);">로딩중...</div>';
+    // 미국 시황 카드
+    if(d.results) document.getElementById('usCard').innerHTML=d.results.filter(r=>!r.error).map(r=>{const c=parseFloat(r.change?.toFixed(2)||0);const cls=c>=0?'up':'down';const s=c>=0?'+':'';return`<div class="rank-row"><span class="rname">${nm[r.symbol]||r.symbol}</span><span class="rprice">${r.price?.toLocaleString()||'-'}</span><span class="rchg ${cls}">${s}${c}%</span></div>`;}).join('');
+  }catch(e){console.log('loadUs err',e);}
 }
 
 // ════════════════════════════════════════
@@ -943,11 +951,13 @@ async function analyzeStock(){
   const raw=document.getElementById('aiSearchIn').value.trim();
   const mkt=document.getElementById('aiMkt').value;
   if(!raw){alert('종목 입력!');return;}
-  // 종목 코드 추출
-  let ticker=curTicker, name=raw;
+  // 종목 코드 추출 (괄호 안 코드 우선)
+  let ticker=null, name=raw;
+  const bracketMatch=raw.match(/\(([^)]+)\)/);
+  if(bracketMatch){ticker=bracketMatch[1];name=raw.replace(/\s*\([^)]+\)/,'').trim();}
   if(!ticker){
     const db=mkt==='kr'?KR_STOCKS:US_STOCKS;
-    const found=db.find(s=>s.name.toLowerCase().includes(raw.toLowerCase())||s.code.toLowerCase()===raw.toLowerCase());
+    const found=db.find(s=>s.name.toLowerCase().includes(raw.toLowerCase())||s.code.toLowerCase()===raw.toLowerCase()||s.code===raw);
     if(found){ticker=found.code;name=found.name;}
     else{ticker=raw.replace(/\s*\(.*\)/,'').trim();}
   }
@@ -969,21 +979,52 @@ async function analyzeStock(){
         document.getElementById('pRate').className='price-val '+(chgVal>=0?'up':'down');
         document.getElementById('pVol').textContent='-';
         priceInfo=`현재가: $${curPriceVal.toFixed(2)}, 등락률: ${chgVal>=0?'+':''}${chgVal.toFixed(2)}%`;
+      } else {
+        // Yahoo Finance 직접 조회
+        const yr=await fetch(`/api/stock?action=chart&symbol=${ticker}&range=1d`);const yd=await yr.json();
+        if(yd.closes&&yd.closes.length>0){curPriceVal=yd.closes[yd.closes.length-1];document.getElementById('pCur').textContent='$'+curPriceVal.toFixed(2);priceInfo=`현재가: $${curPriceVal.toFixed(2)}`;}
       }
-    }else if(kisToken){
-      const r=await fetch('/api/stock?action=price_kr',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:kisToken,ticker,mode:tradeMode})});
-      const d=await r.json();
-      if(d.output){
-        curPriceVal=parseInt(d.output.stck_prpr||0);chgVal=parseFloat(d.output.prdy_ctrt||0);volVal=parseInt(d.output.acml_vol||0);
-        document.getElementById('pCur').textContent=curPriceVal.toLocaleString()+'원';
-        document.getElementById('pChg').textContent=parseInt(d.output.prdy_vrss||0).toLocaleString()+'원';
-        document.getElementById('pChg').className='price-val '+(chgVal>=0?'up':'down');
-        document.getElementById('pRate').textContent=(chgVal>=0?'+':'')+chgVal.toFixed(2)+'%';
-        document.getElementById('pRate').className='price-val '+(chgVal>=0?'up':'down');
-        document.getElementById('pVol').textContent=volVal.toLocaleString();
-        priceInfo=`현재가: ${curPriceVal.toLocaleString()}원, 전일대비: ${chgVal>=0?'+':''}${chgVal.toFixed(2)}%, 거래량: ${volVal.toLocaleString()}주, 고가: ${parseInt(d.output.stck_hgpr||0).toLocaleString()}원, 저가: ${parseInt(d.output.stck_lwpr||0).toLocaleString()}원`;
+    }else{
+      // 한국 주식: KIS 우선, 없으면 Yahoo Finance .KS/.KQ 조회
+      let gotPrice=false;
+      if(kisToken){
+        try{
+          const r=await fetch('/api/stock?action=price_kr',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:kisToken,ticker,mode:tradeMode})});
+          const d=await r.json();
+          if(d.output&&parseInt(d.output.stck_prpr||0)>0){
+            curPriceVal=parseInt(d.output.stck_prpr||0);chgVal=parseFloat(d.output.prdy_ctrt||0);volVal=parseInt(d.output.acml_vol||0);
+            document.getElementById('pCur').textContent=curPriceVal.toLocaleString()+'원';
+            document.getElementById('pChg').textContent=parseInt(d.output.prdy_vrss||0).toLocaleString()+'원';
+            document.getElementById('pChg').className='price-val '+(chgVal>=0?'up':'down');
+            document.getElementById('pRate').textContent=(chgVal>=0?'+':'')+chgVal.toFixed(2)+'%';
+            document.getElementById('pRate').className='price-val '+(chgVal>=0?'up':'down');
+            document.getElementById('pVol').textContent=volVal.toLocaleString();
+            priceInfo=`현재가: ${curPriceVal.toLocaleString()}원, 전일대비: ${chgVal>=0?'+':''}${chgVal.toFixed(2)}%, 거래량: ${volVal.toLocaleString()}주, 고가: ${parseInt(d.output.stck_hgpr||0).toLocaleString()}원, 저가: ${parseInt(d.output.stck_lwpr||0).toLocaleString()}원`;
+            gotPrice=true;
+          }
+        }catch(e){}
       }
-    }else{priceInfo='※ KIS 미연결 상태 - 현재가 정보 없음 (실시간 조회 불가)';}
+      if(!gotPrice){
+        // Yahoo Finance .KS (코스피) 또는 .KQ (코스닥)로 조회
+        for(const suffix of ['.KS','.KQ']){
+          try{
+            const yr=await fetch(`/api/stock?action=chart&symbol=${ticker}${suffix}&range=1d`);const yd=await yr.json();
+            if(yd.closes&&yd.closes.length>0){
+              curPriceVal=yd.closes[yd.closes.length-1];
+              document.getElementById('pCur').textContent=Math.round(curPriceVal).toLocaleString()+'원';
+              document.getElementById('pChg').textContent='-';
+              document.getElementById('pRate').textContent='-';
+              document.getElementById('pVol').textContent='-';
+              priceInfo=`현재가: ${Math.round(curPriceVal).toLocaleString()}원 (Yahoo Finance 기준)`;
+              // 차트도 해당 심볼로 로드
+              curTicker=ticker+suffix; loadChart('3mo',null); curTicker=ticker;
+              gotPrice=true; break;
+            }
+          }catch(e){}
+        }
+        if(!gotPrice) priceInfo='※ KIS 미연결 + Yahoo 조회 실패. KIS 연결 후 재시도 권장.';
+      }
+    }
   }catch(e){priceInfo='가격 조회 오류: '+e.message;}
 
   // 차트 로드
