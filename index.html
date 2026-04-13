@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -257,6 +256,12 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 .soon-title{font-size:16px;font-weight:700;}
 .soon-sub{font-size:11px;color:var(--mu);text-align:center;line-height:1.6;}
 
+.blog-mode-btn{padding:6px 8px;border-radius:6px;border:1px solid var(--bd);background:var(--b3);color:var(--mu);font-size:11px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .15s;}
+.blog-mode-btn.on{background:rgba(255,225,53,.12);border-color:var(--y);color:var(--y);font-weight:700;}
+.blog-list-item{background:var(--b2);border:1px solid var(--bd);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:5px;}
+.blog-list-item:hover{border-color:#444;}
+.sched-item{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--b2);border:1px solid var(--bd);border-radius:8px;font-size:11px;}
+.sched-del{margin-left:auto;background:none;border:none;color:var(--mu);cursor:pointer;}
 /* STATUS BAR */
 .sbar{height:24px;border-top:1px solid var(--bd);display:flex;align-items:center;padding:0 12px;gap:12px;flex-shrink:0;}
 .sdot{width:4px;height:4px;border-radius:50%;}
@@ -412,7 +417,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
     <div class="chdr-icon"><svg width="18" height="18" viewBox="0 0 28 28"><use href="#bear"/></svg></div>
     <div><div class="chdr-title">달콩이 전용 제미나이</div></div>
     <div class="apiarea">
-      <select class="mdsel" id="mdSel"><option value="gemini-2.5-flash">Flash 2.5</option><option value="gemini-3-flash-preview">Flash 3</option><option value="gemini-1.5-flash-001">Flash 1.5</option></select>
+      <select class="mdsel" id="mdSel"><option value="gemini-2.5-flash">Flash 2.5 ✅</option><option value="gemini-2.0-flash">Flash 2.0 ✅</option></select>
       <input class="apiin" type="password" id="apiIn" placeholder="Gemini API Key..." />
       <button class="apisave" onclick="saveKey()">저장</button>
     </div>
@@ -1578,6 +1583,414 @@ function addTyp(){const ms=document.getElementById('msgs');const id='t'+Date.now
 function rmTyp(id){const e=document.getElementById(id);if(e)e.remove();}
 function esc(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
 function refreshAll(){loadUs();refreshWl();loadNews();if(kisToken){loadRank('vol');loadRank('rise');loadRank('fall');}}
+
+// ════════════════════════════════════════
+// 블로그 탭
+// ════════════════════════════════════════
+let blogMode='topic';
+let savedBlogs=JSON.parse(localStorage.getItem('blogs')||'[]');
+let schedules=JSON.parse(localStorage.getItem('schedules')||'[]');
+let schedRunning=false, schedTimer=null;
+let naverToken=localStorage.getItem('naver_token')||'';
+let naverBlogId=localStorage.getItem('naver_blog_id')||'';
+
+// 블로그 서브탭 전환
+function switchBlog(btn){
+  document.querySelectorAll('#pg-blog .spage').forEach(s=>s.classList.remove('on'));
+  document.querySelectorAll('#pg-blog .stab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('bsp-'+btn.dataset.sp).classList.add('on');
+  btn.classList.add('on');
+  if(btn.dataset.sp==='list') renderBlogList();
+  if(btn.dataset.sp==='schedule') renderSchedules();
+}
+
+// 생성 방식 전환
+function setBlogMode(btn,mode){
+  blogMode=mode;
+  document.querySelectorAll('.blog-mode-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  ['topic','template','rewrite'].forEach(m=>{
+    const el=document.getElementById('bm-'+m);
+    if(el) el.style.display=m===mode?'block':'none';
+  });
+}
+
+// 에디터/미리보기 전환
+function switchEditor(mode){
+  const editor=document.getElementById('blogEditor');
+  const preview=document.getElementById('blogPreview');
+  const eBtn=document.getElementById('editorTabBtn');
+  const pBtn=document.getElementById('previewTabBtn');
+  if(mode==='edit'){
+    editor.style.display='block';preview.style.display='none';
+    eBtn.classList.add('on');pBtn.classList.remove('on');
+  } else {
+    editor.style.display='none';preview.style.display='block';
+    eBtn.classList.remove('on');pBtn.classList.add('on');
+    // 마크다운 기본 렌더링
+    const content=document.getElementById('blogEditor').value;
+    preview.innerHTML=content.replace(/^## (.+)$/gm,'<h2 style="font-size:16px;font-weight:700;margin:14px 0 6px;color:var(--y)">$1</h2>')
+      .replace(/^### (.+)$/gm,'<h3 style="font-size:14px;font-weight:700;margin:10px 0 5px;">$1</h3>')
+      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+      .replace(/
+/g,'<br>');
+  }
+}
+
+function updateWordCount(){
+  const txt=document.getElementById('blogEditor').value;
+  document.getElementById('blogWordCount').textContent=txt.length+'자';
+}
+
+// 네이버 설정 저장
+function saveNaverBlogConfig(){
+  naverToken=document.getElementById('naverToken').value.trim();
+  naverBlogId=document.getElementById('naverBlogId').value.trim();
+  localStorage.setItem('naver_token',naverToken);
+  localStorage.setItem('naver_blog_id',naverBlogId);
+  document.getElementById('naverBlogStatus').textContent=naverBlogId?'✅ '+naverBlogId:'네이버 미연결';
+  document.getElementById('naverBlogStatus').style.color=naverBlogId?'#03C75A':'var(--mu)';
+  alert('저장됐어요!');
+}
+
+// 발행 설정 변경
+document.addEventListener('change', e => {
+  if(e.target.id==='blogPublish'){
+    const schedInput=document.getElementById('blogScheduleTime');
+    if(schedInput) schedInput.style.display=e.target.value==='schedule'?'block':'none';
+  }
+});
+
+// 블로그 글 생성
+async function generateBlog(){
+  if(!gKey){alert('Gemini API 키를 먼저 설정해주세요!');return;}
+  const btn=document.getElementById('genBtn');
+  const status=document.getElementById('genStatus');
+  btn.disabled=true; btn.textContent='생성 중... 🤖';
+  status.textContent='AI 글 생성 중...';
+
+  // 입력값 수집
+  const mode=blogMode;
+  let topic='', extra='';
+  if(mode==='topic') topic=document.getElementById('blogTopic').value.trim();
+  else if(mode==='template'){topic=document.getElementById('blogTemplate').value; extra=document.getElementById('blogTemplateInput').value.trim();}
+  else if(mode==='rewrite') extra=document.getElementById('blogRewriteInput').value.trim();
+
+  const category=document.getElementById('blogCategory').value;
+  const tags=document.getElementById('blogTags').value;
+  const length=document.getElementById('blogLength').value;
+  const tone=document.getElementById('blogTone').value;
+  const seoKw=document.getElementById('blogSeoKeyword').value.trim();
+  const genImg=document.getElementById('genImage').checked;
+
+  const lengthMap={short:'500자 내외',medium:'1000자 내외',long:'2000자 내외',seo:'3000자 이상 (SEO 최적화, 소제목 포함)'};
+  const toneMap={friendly:'친근하고 구어체적인 블로그체',formal:'전문적이고 신뢰감 있는',casual:'가볍고 캐주얼한',marketing:'마케팅/홍보에 최적화된'};
+
+  let prompt='';
+  if(mode==='rewrite'){
+    prompt=`다음 글을 네이버 블로그에 최적화된 형식으로 리라이팅해주세요.
+
+원본:
+${extra}
+
+조건:
+- 길이: ${lengthMap[length]}
+- 톤: ${toneMap[tone]}
+- SEO 키워드: ${seoKw||'없음'}
+- 카테고리: ${category||'없음'}`;
+  } else if(mode==='template'){
+    const tplMap={review:'제품/서비스 리뷰',info:'정보성 글',news:'뉴스 정리',recipe:'레시피/방법',travel:'여행기',stock:'주식 분석'};
+    prompt=`[${tplMap[topic]}] 형식으로 네이버 블로그 글을 작성해주세요.
+핵심내용: ${extra}
+
+조건:
+- 길이: ${lengthMap[length]}
+- 톤: ${toneMap[tone]}
+- SEO 키워드: ${seoKw||'없음'}`;
+  } else {
+    prompt=`주제: "${topic}"
+
+위 주제로 네이버 블로그에 최적화된 글을 작성해주세요.
+
+조건:
+- 길이: ${lengthMap[length]}
+- 톤: ${toneMap[tone]}
+- SEO 핵심 키워드: ${seoKw||topic}
+- 카테고리: ${category||'없음'}
+- 태그: ${tags||'없음'}
+
+반드시 포함할 것:
+1. 매력적인 제목 (첫 줄에 [제목] 형식으로)
+2. 도입부 (독자 관심 끌기)
+3. 본문 (소제목 포함, ## 사용)
+4. 마무리 + 행동 유도
+5. 태그 목록 (마지막에 #태그 형식)`;
+  }
+
+  if(genImg) prompt+='
+
+마지막에 [이미지프롬프트] 섹션에 영문 이미지 생성 프롬프트도 작성해주세요.';
+
+  try{
+    const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:gKey,model:gMod,messages:[{role:'user',parts:[{text:prompt}]}],systemPrompt:'당신은 네이버 블로그 전문 작가입니다. SEO에 최적화된 고품질 블로그 글을 작성해주세요.'})});
+    const d=await r.json();
+    if(d.error){alert('오류: '+d.error.message);return;}
+    const content=d.reply||'';
+
+    // 제목 추출
+    const titleMatch=content.match(/\[제목\]\s*(.+)/);
+    if(titleMatch) document.getElementById('blogTitle').value=titleMatch[1].trim();
+    else if(topic) document.getElementById('blogTitle').value=topic;
+
+    // 이미지 프롬프트 추출
+    const imgMatch=content.match(/\[이미지프롬프트\]([\s\S]+?)($|
+
+)/);
+    if(imgMatch&&genImg){
+      document.getElementById('imagePromptArea').style.display='block';
+      document.getElementById('imagePromptText').textContent=imgMatch[1].trim();
+    }
+
+    // 본문 (제목/이미지프롬프트 제거)
+    const cleaned=content.replace(/\[제목\].+
+?/,'').replace(/\[이미지프롬프트\][\s\S]+?($|
+
+)/,'').trim();
+    document.getElementById('blogEditor').value=cleaned;
+    updateWordCount();
+
+    // 저장
+    const blogData={id:Date.now(),title:document.getElementById('blogTitle').value||topic,content:cleaned,category,tags,created:new Date().toLocaleString('ko-KR'),status:'draft'};
+    savedBlogs.unshift(blogData);
+    if(savedBlogs.length>50) savedBlogs=savedBlogs.slice(0,50);
+    localStorage.setItem('blogs',JSON.stringify(savedBlogs));
+
+    // SEO 체크 자동 실행
+    runSeoCheck();
+
+    // 업로드 버튼 표시
+    document.getElementById('uploadBtn').style.display='block';
+    status.textContent='✅ 생성 완료!';
+
+  }catch(e){alert('오류: '+e.message);}
+  finally{btn.disabled=false;btn.textContent='🤖 AI 블로그 글 생성';}
+}
+
+// 네이버 블로그 업로드
+async function uploadToNaver(){
+  const title=document.getElementById('blogTitle').value.trim();
+  const content=document.getElementById('blogEditor').value.trim();
+  const tags=document.getElementById('blogTags').value.trim();
+  const publish=document.getElementById('blogPublish').value;
+
+  if(!title||!content){alert('제목과 내용을 입력해주세요!');return;}
+  if(!naverToken){alert('네이버 Access Token을 먼저 설정해주세요!\n네이버 개발자센터에서 OAuth 토큰을 발급하세요.');return;}
+
+  document.getElementById('uploadBtn').textContent='업로드 중...';
+  try{
+    const r=await fetch('/api/blog?action=upload',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({token:naverToken,blogId:naverBlogId,title,content,tags,publish})
+    });
+    const d=await r.json();
+    if(d.ok||d.postId){
+      document.getElementById('uploadResult').innerHTML=`<span style="color:var(--dn)">✅ 업로드 완료! ${d.url?'<a href="'+d.url+'" target="_blank" style="color:var(--y)">글 보기</a>':''}</span>`;
+      // 저장 목록 상태 업데이트
+      if(savedBlogs.length>0){savedBlogs[0].status='published';savedBlogs[0].url=d.url||'';localStorage.setItem('blogs',JSON.stringify(savedBlogs));}
+    } else {
+      document.getElementById('uploadResult').innerHTML=`<span style="color:var(--up)">❌ ${d.error||d.message||JSON.stringify(d).slice(0,100)}</span>`;
+    }
+  }catch(e){document.getElementById('uploadResult').innerHTML=`<span style="color:var(--up)">오류: ${e.message}</span>`;}
+  finally{document.getElementById('uploadBtn').textContent='📤 네이버 블로그 업로드';}
+}
+
+// 글 목록
+function renderBlogList(){
+  const el=document.getElementById('blogListContainer');
+  if(savedBlogs.length===0){el.innerHTML='<div style="font-size:12px;color:var(--mu);text-align:center;padding:30px;">저장된 글이 없어요.</div>';return;}
+  el.innerHTML=savedBlogs.map((b,i)=>`
+    <div class="blog-list-item">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:13px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${b.title}</span>
+        <span style="font-size:9px;padding:2px 7px;border-radius:100px;background:${b.status==='published'?'rgba(3,199,90,.15)':'rgba(255,225,53,.1)'};color:${b.status==='published'?'#03C75A':'var(--y)'};">${b.status==='published'?'발행됨':'임시저장'}</span>
+      </div>
+      <div style="font-size:10px;color:var(--mu);">${b.created} · ${b.category||'카테고리없음'}</div>
+      <div style="display:flex;gap:6px;margin-top:4px;">
+        <button onclick="loadBlog(${i})" style="padding:4px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--b3);color:var(--mu);font-size:10px;cursor:pointer;">📝 편집</button>
+        <button onclick="deleteBlog(${i})" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:var(--up);font-size:10px;cursor:pointer;">🗑️ 삭제</button>
+        ${b.url?`<a href="${b.url}" target="_blank" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(3,199,90,.3);background:rgba(3,199,90,.08);color:#03C75A;font-size:10px;text-decoration:none;">🔗 보기</a>`:''}
+      </div>
+    </div>`).join('');
+}
+
+function loadBlog(i){
+  const b=savedBlogs[i];
+  document.getElementById('blogTitle').value=b.title;
+  document.getElementById('blogEditor').value=b.content;
+  document.getElementById('blogTags').value=b.tags||'';
+  document.getElementById('blogCategory').value=b.category||'';
+  updateWordCount();
+  // 글 작성 탭으로 이동
+  document.querySelectorAll('#pg-blog .spage').forEach(s=>s.classList.remove('on'));
+  document.querySelectorAll('#pg-blog .stab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('bsp-write').classList.add('on');
+  document.querySelector('#pg-blog .stab[data-sp="write"]').classList.add('on');
+  document.getElementById('uploadBtn').style.display='block';
+}
+
+function deleteBlog(i){
+  if(!confirm('삭제할까요?'))return;
+  savedBlogs.splice(i,1);
+  localStorage.setItem('blogs',JSON.stringify(savedBlogs));
+  renderBlogList();
+}
+
+function loadBlogList(){renderBlogList();}
+
+function copyBlog(){
+  const title=document.getElementById('blogTitle').value;
+  const content=document.getElementById('blogEditor').value;
+  navigator.clipboard.writeText((title?title+'\n\n':'')+content).then(()=>alert('복사됐어요!'));
+}
+
+function clearBlog(){
+  if(!confirm('초기화할까요?'))return;
+  document.getElementById('blogTitle').value='';
+  document.getElementById('blogEditor').value='';
+  document.getElementById('blogTags').value='';
+  document.getElementById('uploadBtn').style.display='none';
+  document.getElementById('uploadResult').innerHTML='';
+  document.getElementById('imagePromptArea').style.display='none';
+  updateWordCount();
+}
+
+// 스케줄러
+function addSchedule(){
+  const topic=document.getElementById('schedTopic').value.trim();
+  const time=document.getElementById('schedTime').value;
+  const repeat=document.getElementById('schedRepeat').value;
+  if(!topic){alert('주제를 입력해주세요!');return;}
+  schedules.push({id:Date.now(),topic,time,repeat,active:true});
+  localStorage.setItem('schedules',JSON.stringify(schedules));
+  document.getElementById('schedTopic').value='';
+  renderSchedules();
+}
+
+function renderSchedules(){
+  document.getElementById('schedCount').textContent=schedules.length;
+  const repMap={daily:'매일',weekday:'평일',weekly:'매주',once:'1회'};
+  document.getElementById('schedList').innerHTML=schedules.map(s=>`
+    <div class="sched-item">
+      <span style="font-size:14px;">${s.active?'🟢':'⚫'}</span>
+      <span style="font-weight:700;flex:1;">${s.topic}</span>
+      <span style="color:var(--mu);">${s.time}</span>
+      <span style="color:var(--mu);font-size:10px;">${repMap[s.repeat]||s.repeat}</span>
+      <button onclick="toggleSched(${s.id})" style="padding:2px 7px;border-radius:5px;border:1px solid var(--bd);background:var(--b3);color:var(--mu);font-size:9px;cursor:pointer;">${s.active?'중지':'시작'}</button>
+      <button class="sched-del" onclick="deleteSched(${s.id})">✕</button>
+    </div>`).join('');
+}
+
+function toggleSched(id){const s=schedules.find(x=>x.id===id);if(s)s.active=!s.active;localStorage.setItem('schedules',JSON.stringify(schedules));renderSchedules();}
+function deleteSched(id){schedules=schedules.filter(x=>x.id!==id);localStorage.setItem('schedules',JSON.stringify(schedules));renderSchedules();}
+
+function toggleScheduler(){
+  const btn=document.getElementById('schedStartBtn');
+  if(!schedRunning){
+    if(!gKey){alert('Gemini API 키 설정 먼저!');return;}
+    schedRunning=true;
+    btn.textContent='⏹ 스케줄러 중지';btn.style.background='rgba(239,68,68,.15)';btn.style.color='var(--up)';
+    schedLog('✅ 스케줄러 시작 — '+schedules.length+'개 등록');
+    schedTimer=setInterval(checkSchedules,60000);
+    checkSchedules();
+  } else {
+    schedRunning=false;clearInterval(schedTimer);
+    btn.textContent='▶ 스케줄러 시작';btn.style.background='rgba(34,197,94,.15)';btn.style.color='var(--dn)';
+    schedLog('⏹ 스케줄러 중지');
+  }
+}
+
+async function checkSchedules(){
+  if(!schedRunning) return;
+  const now=new Date();
+  const hm=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+  const day=now.getDay();
+  for(const s of schedules){
+    if(!s.active||s.time!==hm) continue;
+    if(s.repeat==='weekday'&&(day===0||day===6)) continue;
+    schedLog('⚡ 자동 발행 시작: '+s.topic);
+    // AI 글 생성
+    try{
+      const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:gKey,model:gMod,messages:[{role:'user',parts:[{text:`주제 "${s.topic}"으로 네이버 블로그 글을 작성해주세요. 첫줄에 [제목] 제목명 형식으로 제목을 써주세요.`}]}],systemPrompt:'네이버 블로그 전문 작가.'})});
+      const d=await r.json();
+      if(d.reply){
+        const titleM=d.reply.match(/\[제목\]\s*(.+)/);
+        const title=titleM?titleM[1].trim():s.topic;
+        const content=d.reply.replace(/\[제목\].+
+?/,'').trim();
+        // 저장
+        const blog={id:Date.now(),title,content,category:'',tags:'',created:new Date().toLocaleString('ko-KR'),status:'auto'};
+        savedBlogs.unshift(blog);
+        localStorage.setItem('blogs',JSON.stringify(savedBlogs));
+        schedLog('✅ 글 생성: '+title);
+        // 네이버 업로드
+        if(naverToken){
+          const ur=await fetch('/api/blog?action=upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:naverToken,blogId:naverBlogId,title,content,tags:'',publish:'now'})});
+          const ud=await ur.json();
+          if(ud.ok||ud.postId) schedLog('📤 발행 완료: '+title);
+          else schedLog('❌ 발행 실패: '+(ud.error||'오류'));
+        }
+        if(s.repeat==='once'){s.active=false;localStorage.setItem('schedules',JSON.stringify(schedules));}
+      }
+    }catch(e){schedLog('❌ 오류: '+e.message);}
+  }
+}
+
+function schedLog(msg){const el=document.getElementById('schedLog');el.innerHTML=`[${new Date().toLocaleTimeString()}] ${msg}\n`+el.innerHTML;}
+
+// SEO 분석
+async function analyzeSEO(){
+  const kw=document.getElementById('seoKeywordInput').value.trim();
+  if(!kw){alert('키워드 입력!');return;}
+  if(!gKey){alert('Gemini API 키 필요!');return;}
+  document.getElementById('seoResult').textContent='분석 중...';
+  try{
+    const prompt=`"${kw}" 키워드에 대한 네이버 블로그 SEO 분석을 해주세요:
+1. 검색 의도 분석
+2. 연관 키워드 10개 추천
+3. 제목 작성 공식 3가지
+4. 본문에 포함해야 할 핵심 키워드
+5. 최적 글 길이 및 구조 제안`;
+    const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:gKey,model:gMod,messages:[{role:'user',parts:[{text:prompt}]}],systemPrompt:'SEO 전문가'})});
+    const d=await r.json();
+    document.getElementById('seoResult').textContent=d.reply||d.error?.message||'분석 실패';
+  }catch(e){document.getElementById('seoResult').textContent='오류: '+e.message;}
+}
+
+function runSeoCheck(){
+  const title=document.getElementById('blogTitle').value;
+  const content=document.getElementById('blogEditor').value;
+  const seoKw=document.getElementById('blogSeoKeyword').value;
+  const checks=[
+    {label:'제목 있음',ok:title.length>0},
+    {label:'제목 길이 20~60자',ok:title.length>=20&&title.length<=60},
+    {label:'본문 1000자 이상',ok:content.length>=1000},
+    {label:'소제목(##) 포함',ok:content.includes('##')},
+    {label:'SEO 키워드 설정',ok:seoKw.length>0},
+    {label:'본문에 키워드 포함',ok:seoKw?content.includes(seoKw):false},
+    {label:'태그 설정',ok:document.getElementById('blogTags').value.length>0},
+    {label:'2000자 이상 (SEO 최적)',ok:content.length>=2000},
+  ];
+  const score=Math.round(checks.filter(c=>c.ok).length/checks.length*100);
+  document.getElementById('seoChecklist').innerHTML=
+    `<div style="font-size:16px;font-weight:700;margin-bottom:8px;color:${score>=80?'#03C75A':score>=60?'var(--y)':'var(--up)'};">SEO 점수: ${score}점</div>`+
+    checks.map(c=>`<div style="display:flex;align-items:center;gap:7px;padding:4px 0;"><span style="color:${c.ok?'#03C75A':'var(--up)'}">${c.ok?'✅':'❌'}</span><span style="font-size:11px;">${c.label}</span></div>`).join('');
+}
+
+// 초기화
+window.addEventListener('load',()=>{
+  if(naverToken) document.getElementById('naverToken').value=naverToken;
+  if(naverBlogId){document.getElementById('naverBlogId').value=naverBlogId;document.getElementById('naverBlogStatus').textContent='✅ '+naverBlogId;document.getElementById('naverBlogStatus').style.color='#03C75A';}
+});
 </script>
 </body>
 </html>
