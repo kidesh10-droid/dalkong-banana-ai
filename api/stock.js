@@ -1,396 +1,320 @@
+const fetch = (...args) => import('node-fetch').then(({default: f}) => f(...args));
+
+const KIS_MOCK = {
+  base: 'https://openapivts.koreainvestment.com:29443',
+  key: process.env.KIS_MOCK_APP_KEY,
+  secret: process.env.KIS_MOCK_APP_SECRET
+};
+const KIS_REAL = {
+  base: 'https://openapi.koreainvestment.com:9443',
+  key: process.env.KIS_REAL_APP_KEY,
+  secret: process.env.KIS_REAL_APP_SECRET
+};
+
+async function sj(r) { try { return await r.json(); } catch(e) { return { error: e.message }; } }
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const { action } = req.query;
-  const KIS_MOCK = { key: process.env.KIS_MOCK_APP_KEY, secret: process.env.KIS_MOCK_APP_SECRET, base: 'https://openapivts.koreainvestment.com:29443' };
-  const KIS_REAL = { key: process.env.KIS_REAL_APP_KEY, secret: process.env.KIS_REAL_APP_SECRET, base: 'https://openapi.koreainvestment.com:9443' };
-  const sj = async (r) => { const t = await r.text(); try { return JSON.parse(t); } catch { return { _raw: t.slice(0,300) }; } };
-
   try {
+    const action = req.method === 'GET'
+      ? req.query.action
+      : (req.body && req.body.action) || req.query.action;
 
-    // 토큰
+    // ── KIS 토큰 ──
     if (action === 'token') {
-      const { mode } = req.body;
-      const c = mode==='real' ? KIS_REAL : KIS_MOCK;
-      const r = await fetch(`${c.base}/oauth2/tokenP`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ grant_type:'client_credentials', appkey:c.key, appsecret:c.secret }) });
+      const { mode } = req.body || {};
+      const c = mode === 'real' ? KIS_REAL : KIS_MOCK;
+      const r = await fetch(`${c.base}/oauth2/tokenP`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ grant_type: 'client_credentials', appkey: c.key, appsecret: c.secret })
+      });
       return res.status(200).json(await sj(r));
     }
 
-    // 코스피/코스닥/환율/비트코인
+    // ── 국내 시황 ──
     if (action === 'market_kr') {
-      const yf = async (sym) => {
+      const [kospi, kosdaq, usdkrw, btc] = await Promise.all([
+        fetch('https://finance.yahoo.com/quote/%5EKS11/').then(r=>r.text()).catch(()=>''),
+        fetch('https://finance.yahoo.com/quote/%5EKQ11/').then(r=>r.text()).catch(()=>''),
+        fetch('https://api.exchangerate-api.com/v4/latest/USD').then(r=>r.json()).catch(()=>({})),
+        fetch('https://api.upbit.com/v1/ticker?markets=KRW-BTC').then(r=>r.json()).catch(()=>[])
+      ]);
+      const extractYahoo = (html, sym) => {
+        const m = html.match(/regularMarketPrice[^>]*?([0-9,]+\.?[0-9]*)/);
+        const m2 = html.match(/regularMarketChangePercent[^>]*?([+-]?[0-9]+\.?[0-9]*)/);
+        return { price: m ? parseFloat(m[1].replace(/,/g,'')) : null, chg: m2 ? parseFloat(m2[1]) : 0 };
+      };
+      const btcData = Array.isArray(btc) && btc[0] ? { price: btc[0].trade_price, chg: btc[0].signed_change_rate*100 } : null;
+      const usdRate = usdkrw.rates && usdkrw.rates.KRW ? usdkrw.rates.KRW : null;
+
+      // Yahoo 파싱 대신 간단한 API
+      const [ks, kq] = await Promise.all([
+        fetch('https://query1.finance.yahoo.com/v8/finance/chart/%5EKS11?interval=1d&range=2d').then(r=>r.json()).catch(()=>({})),
+        fetch('https://query1.finance.yahoo.com/v8/finance/chart/%5EKQ11?interval=1d&range=2d').then(r=>r.json()).catch(()=>({}))
+      ]);
+      const parseYQ = d => {
         try {
-          const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=2d`);
-          const d = await r.json(); const m = d?.chart?.result?.[0]?.meta;
-          return { price: m?.regularMarketPrice, chg: m?.regularMarketChangePercent, prev: m?.previousClose };
+          const q = d.chart.result[0];
+          const closes = q.indicators.quote[0].close;
+          const last = closes[closes.length-1];
+          const prev = closes[closes.length-2]||last;
+          return { price: Math.round(last), chg: ((last-prev)/prev*100) };
         } catch { return null; }
       };
-      const [kospi, kosdaq, usdkrw, btc] = await Promise.all([yf('%5EKS11'), yf('%5EKQ11'), yf('KRW%3DX'), yf('BTC-KRW')]);
-      return res.status(200).json({ kospi, kosdaq, usdkrw, btc });
+      return res.status(200).json({
+        kospi: parseYQ(ks),
+        kosdaq: parseYQ(kq),
+        usdkrw: usdRate ? { price: usdRate } : null,
+        btc: btcData
+      });
     }
 
-    // 미국 시황
+    // ── 미국 시황 ──
     if (action === 'market_us') {
-      const syms = ['%5EGSPC','%5EIXIC','%5EDJI','AAPL','TSLA','NVDA','MSFT','AMZN'];
-      const results = await Promise.all(syms.map(async sym => {
+      const symbols = ['^GSPC','^IXIC','^DJI','AAPL','TSLA','NVDA','MSFT','AMZN'];
+      const results = await Promise.all(symbols.map(async sym => {
         try {
-          const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=2d`);
-          const d = await r.json(); const m = d?.chart?.result?.[0]?.meta;
-          return { symbol: sym.replace('%5E','^'), price: m?.regularMarketPrice, change: m?.regularMarketChangePercent };
+          const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=2d`);
+          const d = await r.json();
+          const q = d.chart.result[0];
+          const closes = q.indicators.quote[0].close;
+          const last = closes[closes.length-1];
+          const prev = closes[closes.length-2]||last;
+          return { symbol: sym, price: last, change: ((last-prev)/prev*100) };
         } catch { return { symbol: sym, error: true }; }
       }));
       return res.status(200).json({ results });
     }
 
-    // 야후 차트 (미국/글로벌)
+    // ── 차트 (Yahoo) ──
     if (action === 'chart') {
-      const { symbol, range } = req.query;
-      const im = { '1d':'5m','5d':'15m','1mo':'1d','3mo':'1d','6mo':'1wk','1y':'1wk' };
-      const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${im[range]||'1d'}&range=${range}`);
-      const d = await r.json(); const rs = d?.chart?.result?.[0];
-      if (!rs) return res.status(200).json({ error:'no data' });
-      const closes = (rs.indicators?.quote?.[0]?.close||[]).map(v=>v?Math.round(v*100)/100:null).filter(Boolean);
-      return res.status(200).json({ timestamps: rs.timestamp||[], closes });
+      const { symbol, range } = req.method==='GET' ? req.query : req.body;
+      const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${range==='1d'?'5m':range==='5d'?'30m':'1d'}&range=${range||'1mo'}`);
+      const d = await r.json();
+      const q = d.chart && d.chart.result && d.chart.result[0];
+      if (!q) return res.status(200).json({ error: 'No data' });
+      return res.status(200).json({
+        timestamps: q.timestamp,
+        closes: q.indicators.quote[0].close,
+        highs: q.indicators.quote[0].high,
+        lows: q.indicators.quote[0].low
+      });
     }
 
-    // KIS 국내 현재가
+    // ── 국내 현재가 (KIS) ──
     if (action === 'price_kr') {
       const { token, ticker, mode } = req.body;
       const c = mode==='real' ? KIS_REAL : KIS_MOCK;
-      const r = await fetch(`${c.base}/uapi/domestic-stock/v1/quotations/inquire-price?fid_cond_mrkt_div_code=J&fid_input_iscd=${ticker}`,
-        { headers:{'content-type':'application/json','authorization':`Bearer ${token}`,'appkey':c.key,'appsecret':c.secret,'tr_id':'FHKST01010100'} });
+      const r = await fetch(`${c.base}/uapi/domestic-stock/v1/quotations/inquire-price?FID_COND_MRKT_DIV_CODE=J&FID_INPUT_ISCD=${ticker}`,
+        { headers: {'content-type':'application/json','authorization':`Bearer ${token}`,'appkey':c.key,'appsecret':c.secret,'tr_id':'FHKST01010100'} });
       return res.status(200).json(await sj(r));
     }
 
-    // KIS 일봉 차트 (국내주식)
+    // ── KIS 차트 ──
     if (action === 'chart_kr') {
       const { token, ticker, period, mode } = req.body;
       const c = mode==='real' ? KIS_REAL : KIS_MOCK;
       const today = new Date();
-      const from = new Date();
-      const days = { '1mo':30,'3mo':90,'6mo':180,'1y':365,'5d':5 };
-      from.setDate(from.getDate() - (days[period]||90));
-      const fmt = d => d.toISOString().slice(0,10).replace(/-/g,'');
-      const periodCode = (period==='1d'||period==='5d') ? 'D' : period==='1mo'||period==='3mo' ? 'D' : 'W';
-      const r = await fetch(
-        `${c.base}/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice?fid_cond_mrkt_div_code=J&fid_input_iscd=${ticker}&fid_input_date_1=${fmt(from)}&fid_input_date_2=${fmt(today)}&fid_period_div_code=${periodCode}&fid_org_adj_prc=0`,
-        { headers:{'content-type':'application/json','authorization':`Bearer ${token}`,'appkey':c.key,'appsecret':c.secret,'tr_id':'FHKST03010100'} }
-      );
+      const from = new Date(today); from.setMonth(from.getMonth()-3);
+      const fmt = d => d.getFullYear()+(d.getMonth()+1).toString().padStart(2,'0')+d.getDate().toString().padStart(2,'0');
+      const r = await fetch(`${c.base}/uapi/domestic-stock/v1/quotations/inquire-daily-chartprice?FID_COND_MRKT_DIV_CODE=J&FID_INPUT_ISCD=${ticker}&FID_INPUT_DATE_1=${fmt(from)}&FID_INPUT_DATE_2=${fmt(today)}&FID_PERIOD_DIV_CODE=D`,
+        { headers: {'content-type':'application/json','authorization':`Bearer ${token}`,'appkey':c.key,'appsecret':c.secret,'tr_id':'FHKST03010100'} });
       const d = await sj(r);
-      if (d.output2 && d.output2.length > 0) {
-        const sorted = [...d.output2].reverse();
-        const timestamps = sorted.map(x => new Date(x.stck_bsop_date.replace(/(\d{4})(\d{2})(\d{2})/,'$1-$2-$3')).getTime()/1000);
-        const closes = sorted.map(x => parseInt(x.stck_clpr||0)).filter(v=>v>0);
-        return res.status(200).json({ timestamps, closes, source:'KIS' });
-      }
-      return res.status(200).json({ error:'no KIS chart data', msg: d.msg1||'' });
+      if (!d.output2) return res.status(200).json({ error: 'No chart data' });
+      const items = d.output2.reverse();
+      return res.status(200).json({
+        timestamps: items.map(x => new Date(x.stck_bsop_date).getTime()/1000),
+        closes: items.map(x => parseInt(x.stck_clpr))
+      });
     }
 
-    // KIS 국내 랭킹 - 거래대금/상승/하락 완전 분리
+    // ── KIS 랭킹 ──
     if (action === 'rank_kr') {
       const { token, type, mode } = req.body;
       const c = mode==='real' ? KIS_REAL : KIS_MOCK;
-      // 거래대금: sort=1 / 상승률: sort=2 / 하락률: sort=4
-      const sortMap = { vol:'1', rise:'2', fall:'4' };
-      const sort = sortMap[type] || '1';
-      const url = `${c.base}/uapi/domestic-stock/v1/ranking/fluctuation?fid_cond_mrkt_div_code=J&fid_cond_scr_div_code=20171&fid_input_iscd=0000&fid_rank_sort_cls_code=${sort}&fid_input_cnt_1=10&fid_prc_cls_code=1&fid_input_price_1=500&fid_input_price_2=&fid_vol_cnt=1000&fid_trgt_cls_code=4&fid_trgt_exls_cls_code=0&fid_div_cls_code=0&fid_rsfl_rate1=&fid_rsfl_rate2=`;
-      const r = await fetch(url, { headers:{'content-type':'application/json','authorization':`Bearer ${token}`,'appkey':c.key,'appsecret':c.secret,'tr_id':'FHPST01720000','custtype':'P'} });
+      const fid = type==='vol' ? '0' : type==='rise' ? '0' : '0';
+      const sortCode = type==='vol' ? '1' : type==='rise' ? '0' : '1';
+      const r = await fetch(`${c.base}/uapi/domestic-stock/v1/ranking/fluctuation?fid_aply_rang_prc_5=0&fid_aply_rang_prc_4=0&fid_cond_mrkt_div_code=J&fid_cond_scr_div_code=20170&fid_input_iscd=0000&fid_rank_sort_cls_code=${sortCode}&fid_input_cnt_1=0&fid_prc_cls_code=1&fid_rank_sort_cls_code2=&fid_blng_cls_code=0`,
+        { headers: {'content-type':'application/json','authorization':`Bearer ${token}`,'appkey':c.key,'appsecret':c.secret,'tr_id':'FHPST01700000','custtype':'P'} });
       return res.status(200).json(await sj(r));
     }
 
-    // 계좌 정보 조회 (계좌번호/상품코드 확인용)
-    if (action === 'account_info') {
-      const { token, mode } = req.body;
-      const c = mode==='real' ? KIS_REAL : KIS_MOCK;
-      const tr = mode==='real' ? 'TTTC8908R' : 'VTTC8908R';
-      // 계좌 잔고 조회로 실제 계좌번호/상품코드 확인
-      // 먼저 토큰 정보에서 계좌번호 추출 시도
-      try {
-        // KIS 포털 계좌목록 조회
-        const r = await fetch(`${c.base}/uapi/domestic-stock/v1/trading/inquire-psbl-order?CANO=&ACNT_PRDT_CD=01&PDNO=005930&ORD_UNPR=0&ORD_DVSN=01&CMA_EVLU_AMT_ICLD_YN=N&OVRS_ICLD_YN=N`,
-          { headers:{'content-type':'application/json','authorization':`Bearer ${token}`,'appkey':c.key,'appsecret':c.secret,'tr_id':mode==='real'?'TTTC8908R':'VTTC8908R'} }
-        );
-        const d = await sj(r);
-        return res.status(200).json({ msg: d.msg1||'', rt_cd: d.rt_cd, output: d.output });
-      } catch(e) {
-        return res.status(200).json({ error: e.message });
-      }
-    }
-
-    // KIS 호가 조회
+    // ── 호가 ──
     if (action === 'hoga') {
       const { token, ticker, mode } = req.body;
       const c = mode==='real' ? KIS_REAL : KIS_MOCK;
-      const r = await fetch(
-        `${c.base}/uapi/domestic-stock/v1/quotations/inquire-asking-price-exp-ccn?fid_cond_mrkt_div_code=J&fid_input_iscd=${ticker}`,
-        { headers:{'content-type':'application/json','authorization':`Bearer ${token}`,'appkey':c.key,'appsecret':c.secret,'tr_id':'FHKST01010200'} }
-      );
+      const r = await fetch(`${c.base}/uapi/domestic-stock/v1/quotations/inquire-asking-price-exp-ccn?FID_COND_MRKT_DIV_CODE=J&FID_INPUT_ISCD=${ticker}`,
+        { headers: {'content-type':'application/json','authorization':`Bearer ${token}`,'appkey':c.key,'appsecret':c.secret,'tr_id':'FHKST01010200'} });
       return res.status(200).json(await sj(r));
     }
 
-    // 해외주식 잔고 조회
-    if (action === 'balance_us') {
-      const { token, mode, accountNo, accountProduct } = req.body;
-      const c = mode==='real' ? KIS_REAL : KIS_MOCK;
-      const tr = mode==='real' ? 'TTTS3012R' : 'VTTS3012R';
-      const r = await fetch(
-        `${c.base}/uapi/overseas-stock/v1/trading/inquire-balance?CANO=${accountNo}&ACNT_PRDT_CD=${accountProduct||'01'}&OVRS_EXCG_CD=NASD&TR_CRCY_CD=USD&CTX_AREA_FK200=&CTX_AREA_NK200=`,
-        { headers:{'content-type':'application/json','authorization':`Bearer ${token}`,'appkey':c.key,'appsecret':c.secret,'tr_id':tr} }
-      );
-      return res.status(200).json(await sj(r));
-    }
-
-    // 국내주식 잔고 + 해외주식 잔고 통합
-    if (action === 'balance_all') {
-      const { token, mode, accountNo, accountProduct } = req.body;
-      const c = mode==='real' ? KIS_REAL : KIS_MOCK;
-
-      // 국내
-      const trKr = mode==='real' ? 'TTTC8434R' : 'VTTC8434R';
-      const [r1, r2] = await Promise.all([
-        fetch(`${c.base}/uapi/domestic-stock/v1/trading/inquire-balance?CANO=${accountNo}&ACNT_PRDT_CD=${accountProduct||'01'}&AFHR_FLPR_YN=N&OFL_YN=&INQR_DVSN=02&UNPR_DVSN=01&FUND_STTL_ICLD_YN=N&FNCG_AMT_AUTO_RDPT_YN=N&PRCS_DVSN=01&CTX_AREA_FK100=&CTX_AREA_NK100=`,
-          { headers:{'content-type':'application/json','authorization':`Bearer ${token}`,'appkey':c.key,'appsecret':c.secret,'tr_id':trKr} }),
-        fetch(`${c.base}/uapi/overseas-stock/v1/trading/inquire-balance?CANO=${accountNo}&ACNT_PRDT_CD=${accountProduct||'01'}&OVRS_EXCG_CD=NASD&TR_CRCY_CD=USD&CTX_AREA_FK200=&CTX_AREA_NK200=`,
-          { headers:{'content-type':'application/json','authorization':`Bearer ${token}`,'appkey':c.key,'appsecret':c.secret,'tr_id':mode==='real'?'TTTS3012R':'VTTS3012R'} })
-      ]);
-
-      const dKr = await sj(r1);
-      const dUs = await sj(r2);
-
-      return res.status(200).json({
-        domestic: dKr,
-        overseas: dUs,
-        rt_cd: dKr.rt_cd
-      });
-    }
-
-    // 국내 매수
-    if (action === 'buy_kr') {
-      const { token, ticker, price, qty, orderType, mode, accountNo, accountProduct } = req.body;
-      console.log('BUY_KR 요청:', { ticker, price, qty, mode, accountNo, accountProduct });
-      const c = mode==='real' ? KIS_REAL : KIS_MOCK;
-      if(!accountNo||accountNo.length<6){
-        return res.status(200).json({ rt_cd:'1', msg1:`계좌번호 오류: "${accountNo}" - 8자리 계좌번호를 확인해주세요` });
-      }
-      const orderBody = { 
-        CANO: accountNo.trim(), 
-        ACNT_PRDT_CD: (accountProduct||'01').trim(), 
-        PDNO: ticker, 
-        ORD_DVSN: orderType||'00', 
-        ORD_QTY: String(qty), 
-        ORD_UNPR: String(price) 
-      };
-      console.log('KIS 주문 바디:', JSON.stringify(orderBody));
-      const r = await fetch(`${c.base}/uapi/domestic-stock/v1/trading/order-cash`, { 
-        method:'POST', 
-        headers:{'content-type':'application/json','authorization':`Bearer ${token}`,'appkey':c.key,'appsecret':c.secret,'tr_id':mode==='real'?'TTTC0802U':'VTTC0802U'}, 
-        body: JSON.stringify(orderBody)
-      });
-      const result = await sj(r);
-      console.log('KIS 응답:', JSON.stringify(result).slice(0,200));
-      return res.status(200).json(result);
-    }
-
-    // 국내 매도
-    if (action === 'sell_kr') {
-      const { token, ticker, price, qty, orderType, mode, accountNo, accountProduct } = req.body;
-      console.log('SELL_KR 요청:', { ticker, price, qty, mode, accountNo, accountProduct });
-      const c = mode==='real' ? KIS_REAL : KIS_MOCK;
-      if(!accountNo||accountNo.length<6){
-        return res.status(200).json({ rt_cd:'1', msg1:`계좌번호 오류: "${accountNo}" - 8자리 계좌번호를 확인해주세요` });
-      }
-      const orderBody = { 
-        CANO: accountNo.trim(), 
-        ACNT_PRDT_CD: (accountProduct||'01').trim(), 
-        PDNO: ticker, 
-        ORD_DVSN: orderType||'00', 
-        ORD_QTY: String(qty), 
-        ORD_UNPR: String(price) 
-      };
-      const r = await fetch(`${c.base}/uapi/domestic-stock/v1/trading/order-cash`, { 
-        method:'POST', 
-        headers:{'content-type':'application/json','authorization':`Bearer ${token}`,'appkey':c.key,'appsecret':c.secret,'tr_id':mode==='real'?'TTTC0801U':'VTTC0801U'}, 
-        body: JSON.stringify(orderBody)
-      });
-      return res.status(200).json(await sj(r));
-    }
-
-    // 잔고 조회
+    // ── 잔고 조회 ──
     if (action === 'balance') {
       const { token, mode, accountNo, accountProduct } = req.body;
       const c = mode==='real' ? KIS_REAL : KIS_MOCK;
-      const tr = mode==='real'?'TTTC8434R':'VTTC8434R';
-      const r = await fetch(`${c.base}/uapi/domestic-stock/v1/trading/inquire-balance?CANO=${accountNo}&ACNT_PRDT_CD=${accountProduct||'01'}&AFHR_FLPR_YN=N&OFL_YN=&INQR_DVSN=02&UNPR_DVSN=01&FUND_STTL_ICLD_YN=N&FNCG_AMT_AUTO_RDPT_YN=N&PRCS_DVSN=01&CTX_AREA_FK100=&CTX_AREA_NK100=`,
-        { headers:{'content-type':'application/json','authorization':`Bearer ${token}`,'appkey':c.key,'appsecret':c.secret,'tr_id':tr} });
+      const tr = mode==='real' ? 'TTTC8434R' : 'VTTC8434R';
+      const no = (accountNo||'').replace(/-/g,'');
+      const r = await fetch(`${c.base}/uapi/domestic-stock/v1/trading/inquire-balance?CANO=${no}&ACNT_PRDT_CD=${accountProduct||'01'}&AFHR_FLPR_YN=N&OFL_YN=&INQR_DVSN=02&UNPR_DVSN=01&FUND_STTL_ICLD_YN=N&FNCG_AMT_AUTO_RDPT_YN=N&PRCS_DVSN=01&CTX_AREA_FK100=&CTX_AREA_NK100=`,
+        { headers: {'content-type':'application/json','authorization':`Bearer ${token}`,'appkey':c.key,'appsecret':c.secret,'tr_id':tr} });
       return res.status(200).json(await sj(r));
     }
 
-    // 뉴스 (네이버)
-    if (action === 'news') {
-      const { query } = req.body;
-      const r = await fetch(`https://openapi.naver.com/v1/search/news.json?query=${encodeURIComponent(query+' 주식')}&display=10&sort=date`,
-        { headers:{'X-Naver-Client-Id':process.env.NAVER_CLIENT_ID||'','X-Naver-Client-Secret':process.env.NAVER_CLIENT_SECRET||''} });
+    // ── 매수 ──
+    if (action === 'buy_kr') {
+      const { token, ticker, price, qty, orderType, mode, accountNo, accountProduct } = req.body;
+      const c = mode==='real' ? KIS_REAL : KIS_MOCK;
+      const tr = mode==='real' ? 'TTTC0802U' : 'VTTC0802U';
+      const no = (accountNo||'').replace(/-/g,'');
+      const r = await fetch(`${c.base}/uapi/domestic-stock/v1/trading/order-cash`,
+        { method:'POST', headers:{'content-type':'application/json','authorization':`Bearer ${token}`,'appkey':c.key,'appsecret':c.secret,'tr_id':tr},
+          body: JSON.stringify({CANO:no,ACNT_PRDT_CD:accountProduct||'01',PDNO:ticker,ORD_DVSN:orderType||'00',ORD_QTY:String(qty),ORD_UNPR:String(price)}) });
       return res.status(200).json(await sj(r));
     }
 
-    // 네이버 API 키 진단
-    if (action === 'check_naver') {
-      const cid = process.env.NAVER_CLIENT_ID||'';
-      const csc = process.env.NAVER_CLIENT_SECRET||'';
-      if(!cid||!csc) return res.status(200).json({ ok:false, msg:'환경변수 NAVER_CLIENT_ID 또는 NAVER_CLIENT_SECRET 없음' });
-      // 실제 테스트
-      try{
-        const r = await fetch('https://openapi.naver.com/v1/search/news.json?query=날씨&display=1',
-          { headers:{'X-Naver-Client-Id':cid,'X-Naver-Client-Secret':csc} });
-        const d = await sj(r);
-        if(d.items) return res.status(200).json({ ok:true, msg:'네이버 API 정상 작동', sample: d.items[0]?.title||'' });
-        return res.status(200).json({ ok:false, msg: d.errorMessage||JSON.stringify(d) });
-      }catch(e){ return res.status(200).json({ ok:false, msg: e.message }); }
+    // ── 매도 ──
+    if (action === 'sell_kr') {
+      const { token, ticker, price, qty, orderType, mode, accountNo, accountProduct } = req.body;
+      const c = mode==='real' ? KIS_REAL : KIS_MOCK;
+      const tr = mode==='real' ? 'TTTC0801U' : 'VTTC0801U';
+      const no = (accountNo||'').replace(/-/g,'');
+      const r = await fetch(`${c.base}/uapi/domestic-stock/v1/trading/order-cash`,
+        { method:'POST', headers:{'content-type':'application/json','authorization':`Bearer ${token}`,'appkey':c.key,'appsecret':c.secret,'tr_id':tr},
+          body: JSON.stringify({CANO:no,ACNT_PRDT_CD:accountProduct||'01',PDNO:ticker,ORD_DVSN:orderType||'00',ORD_QTY:String(qty),ORD_UNPR:String(price)}) });
+      return res.status(200).json(await sj(r));
     }
 
-    // 날씨 + 네이버 통합 검색 (채팅용)
-    if (action === 'naver_search') {
+    // ── 네이버 검색/뉴스 ──
+    if (action === 'news' || action === 'naver_search') {
       const { query } = req.body;
-      const cid = process.env.NAVER_CLIENT_ID||'';
-      const csc = process.env.NAVER_CLIENT_SECRET||'';
-      // 키 없으면 즉시 빈 결과
-      if(!cid||!csc) return res.status(200).json({ type:'error', msg:'NAVER API 키 미설정' });
-
-      const isWeather = ['날씨','기온','강수','비','눈','맑','흐','황사','미세먼지','예보','기상'].some(k=>query.includes(k));
-      const isNews = ['뉴스','최신','속보','오늘'].some(k=>query.includes(k));
-
-      try {
-        // ── 날씨: 네이버 검색으로 실제 날씨 정보 가져오기 ──
-        if (isWeather) {
-          // 네이버 검색 + 지식iN 병렬 조회
-          const [r1, r2] = await Promise.all([
-            fetch(`https://openapi.naver.com/v1/search/webkr.json?query=${encodeURIComponent(query)}&display=5`,
-              { headers:{'X-Naver-Client-Id':cid,'X-Naver-Client-Secret':csc} }),
-            fetch(`https://openapi.naver.com/v1/search/news.json?query=${encodeURIComponent(query)}&display=5&sort=date`,
-              { headers:{'X-Naver-Client-Id':cid,'X-Naver-Client-Secret':csc} })
-          ]);
-          const d1 = await sj(r1);
-          const d2 = await sj(r2);
-          // 웹 결과에서 날씨 관련 스니펫 추출
-          const webItems = (d1.items||[]).map(x=>({
-            title: x.title.replace(/<[^>]*>/g,'').replace(/&[^;]+;/g,''),
-            desc: (x.description||'').replace(/<[^>]*>/g,'').replace(/&[^;]+;/g,'').slice(0,150)
-          }));
-          const newsItems = (d2.items||[]).map(x=>({
-            title: x.title.replace(/<[^>]*>/g,'').replace(/&[^;]+;/g,''),
-            desc: (x.description||'').replace(/<[^>]*>/g,'').replace(/&[^;]+;/g,'').slice(0,100),
-            date: x.pubDate||''
-          }));
-          return res.status(200).json({
-            type: 'weather_search',
-            query,
-            web: webItems,
-            news: newsItems,
-            fetchedAt: new Date().toLocaleString('ko-KR', {timeZone:'Asia/Seoul'})
-          });
-        }
-
-        // ── 뉴스 검색 ──
-        if (isNews) {
-          const r = await fetch(`https://openapi.naver.com/v1/search/news.json?query=${encodeURIComponent(query)}&display=5&sort=date`,
-            { headers:{'X-Naver-Client-Id':cid,'X-Naver-Client-Secret':csc} });
-          const d = await sj(r);
-          return res.status(200).json({ type:'news', items: d.items||[] });
-        }
-
-        // ── 일반 검색: 뉴스 + 웹검색 병렬 ──
-        const [r1,r2] = await Promise.all([
-          fetch(`https://openapi.naver.com/v1/search/news.json?query=${encodeURIComponent(query)}&display=4&sort=date`, { headers:{'X-Naver-Client-Id':cid,'X-Naver-Client-Secret':csc} }),
-          cid?fetch(`https://openapi.naver.com/v1/search/webkr.json?query=${encodeURIComponent(query)}&display=3`, { headers:{'X-Naver-Client-Id':cid,'X-Naver-Client-Secret':csc} }):Promise.resolve(null)
-        ]);
-        const d1 = await sj(r1);
-        const d2 = r2 ? await sj(r2) : { items:[] };
-        return res.status(200).json({ type:'search', items:[...(d1.items||[]),...(d2.items||[])] });
-
-      } catch(e) {
-        return res.status(200).json({ error: e.message });
-      }
+      const cid = process.env.NAVER_CLIENT_ID;
+      const csec = process.env.NAVER_CLIENT_SECRET;
+      if (!cid || !csec) return res.status(200).json({ items: [] });
+      const type = action === 'news' ? 'news' : 'webkr';
+      const r = await fetch(`https://openapi.naver.com/v1/search/${type}.json?query=${encodeURIComponent(query)}&display=10&sort=date`,
+        { headers: { 'X-Naver-Client-Id': cid, 'X-Naver-Client-Secret': csec } });
+      return res.status(200).json(await sj(r));
     }
 
-    // ── 네이버 데이터랩 키워드 트렌드 ──
+    // ── 네이버 데이터랩 (키워드 검색량) ──
     if (action === 'datalab_keyword') {
       const { keyword, startDate, endDate, timeUnit } = req.body;
-      const clientId = process.env.NAVER_CLIENT_ID;
-      const clientSecret = process.env.NAVER_CLIENT_SECRET;
-      if (!clientId || !clientSecret) return res.status(200).json({ error: 'NAVER API 키가 설정되지 않았습니다.' });
-      try {
-        const body = {
-          startDate: startDate || (() => { const d=new Date(); d.setMonth(d.getMonth()-12); return d.toISOString().slice(0,10); })(),
-          endDate: endDate || new Date().toISOString().slice(0,10),
-          timeUnit: timeUnit || 'month',
-          keywordGroups: [{ groupName: keyword, keywords: [keyword] }]
-        };
-        const r = await fetch('https://openapi.naver.com/v1/datalab/search', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Naver-Client-Id': clientId,
-            'X-Naver-Client-Secret': clientSecret
-          },
-          body: JSON.stringify(body)
-        });
-        const d = await r.json();
-        return res.status(200).json(d);
-      } catch(e) { return res.status(200).json({ error: e.message }); }
+      const cid = process.env.NAVER_CLIENT_ID;
+      const csec = process.env.NAVER_CLIENT_SECRET;
+      if (!cid || !csec) return res.status(200).json({ error: 'NAVER_API_NOT_SET' });
+      const now = new Date();
+      const sd = startDate || (() => { const d=new Date(); d.setMonth(d.getMonth()-12); return d.toISOString().slice(0,10); })();
+      const ed = endDate || now.toISOString().slice(0,10);
+      const body = {
+        startDate: sd, endDate: ed,
+        timeUnit: timeUnit || 'month',
+        keywordGroups: [{ groupName: keyword, keywords: [keyword] }]
+      };
+      const r = await fetch('https://openapi.naver.com/v1/datalab/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Naver-Client-Id': cid, 'X-Naver-Client-Secret': csec },
+        body: JSON.stringify(body)
+      });
+      const d = await sj(r);
+      return res.status(200).json(d);
     }
 
-    // ── 네이버 쇼핑 키워드 통계 (광고 API) ──
+    // ── 네이버 쇼핑 검색 ──
     if (action === 'shopping_keyword') {
       const { keyword } = req.body;
-      const clientId = process.env.NAVER_CLIENT_ID;
-      const clientSecret = process.env.NAVER_CLIENT_SECRET;
-      if (!clientId || !clientSecret) return res.status(200).json({ error: 'NAVER API 키 없음' });
-      try {
-        // 네이버 쇼핑 검색 결과로 인기도 추정
-        const r = await fetch(`https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(keyword)}&display=10&sort=sim`, {
-          headers: { 'X-Naver-Client-Id': clientId, 'X-Naver-Client-Secret': clientSecret }
-        });
-        const d = await r.json();
-        return res.status(200).json({ total: d.total, items: d.items || [] });
-      } catch(e) { return res.status(200).json({ error: e.message }); }
+      const cid = process.env.NAVER_CLIENT_ID;
+      const csec = process.env.NAVER_CLIENT_SECRET;
+      if (!cid || !csec) return res.status(200).json({ error: 'NAVER_API_NOT_SET' });
+      const r = await fetch(`https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(keyword)}&display=30&sort=sim`,
+        { headers: { 'X-Naver-Client-Id': cid, 'X-Naver-Client-Secret': csec } });
+      const d = await sj(r);
+      return res.status(200).json(d);
     }
 
-    // ── Imagen 이미지 생성 ──
+    // ── 네이버 광고 API (키워드 통계) ──
+    if (action === 'naver_ad_keyword') {
+      const { keyword } = req.body;
+      // 네이버 검색광고 API는 별도 키 필요 - 우선 쇼핑 API로 대체
+      const cid = process.env.NAVER_CLIENT_ID;
+      const csec = process.env.NAVER_CLIENT_SECRET;
+      if (!cid || !csec) return res.status(200).json({ error: 'NAVER_API_NOT_SET' });
+      const [shop, news] = await Promise.all([
+        fetch(`https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(keyword)}&display=10`,
+          { headers: {'X-Naver-Client-Id':cid,'X-Naver-Client-Secret':csec} }).then(r=>r.json()).catch(()=>({})),
+        fetch(`https://openapi.naver.com/v1/search/news.json?query=${encodeURIComponent(keyword)}&display=5&sort=date`,
+          { headers: {'X-Naver-Client-Id':cid,'X-Naver-Client-Secret':csec} }).then(r=>r.json()).catch(()=>({}))
+      ]);
+      return res.status(200).json({ shop, news });
+    }
+
+    // ── Imagen 3 이미지 생성 ──
     if (action === 'imagen') {
-      const { apiKey, prompt, aspectRatio, sampleCount } = req.body;
+      const { apiKey, prompt, aspectRatio, sampleCount, negativePrompt } = req.body;
       if (!apiKey) return res.status(200).json({ error: 'API 키 없음' });
-      try {
-        const count = parseInt(sampleCount) || 1;
-        const r = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              instances: [{ prompt }],
-              parameters: {
-                sampleCount: count,
-                aspectRatio: aspectRatio || '16:9',
-                safetyFilterLevel: 'BLOCK_SOME',
-                personGeneration: 'ALLOW_ADULT'
-              }
-            })
-          }
-        );
-        const d = await r.json();
-        if (d.error) return res.status(200).json({ error: d.error.message });
-        if (d.predictions && d.predictions.length > 0) {
-          const images = d.predictions.map(p => ({
-            base64: p.bytesBase64Encoded,
-            mimeType: 'image/png'
-          }));
-          return res.status(200).json({ images });
+      const count = Math.min(parseInt(sampleCount)||1, 4);
+      // 지원 모델: imagen-3.0-generate-001 또는 imagen-3.0-fast-generate-001
+      const model = 'imagen-3.0-generate-001';
+      const r = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:predict?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            instances: [{ prompt, ...(negativePrompt ? { negativePrompt } : {}) }],
+            parameters: {
+              sampleCount: count,
+              aspectRatio: aspectRatio || '1:1',
+              safetyFilterLevel: 'BLOCK_SOME',
+              personGeneration: 'ALLOW_ADULT'
+            }
+          })
         }
-        return res.status(200).json({ error: '이미지 생성 실패', raw: d });
-      } catch(e) { return res.status(200).json({ error: e.message }); }
+      );
+      const d = await sj(r);
+      if (d.error) return res.status(200).json({ error: d.error.message || JSON.stringify(d.error) });
+      if (d.predictions && d.predictions.length > 0) {
+        return res.status(200).json({
+          images: d.predictions.map(p => ({ base64: p.bytesBase64Encoded, mimeType: 'image/png' }))
+        });
+      }
+      return res.status(200).json({ error: '이미지 생성 실패', raw: JSON.stringify(d).slice(0,300) });
+    }
+
+    // ── Gemini Vision 이미지 합성/편집 ──
+    if (action === 'gemini_image_edit') {
+      const { apiKey, prompt, imageBase64, mimeType } = req.body;
+      if (!apiKey) return res.status(200).json({ error: 'API 키 없음' });
+      // Gemini 2.0 flash experimental - 이미지 생성/편집 가능
+      const model = 'gemini-2.0-flash-exp';
+      const r = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { inline_data: { mime_type: mimeType || 'image/jpeg', data: imageBase64 } },
+                { text: prompt }
+              ]
+            }],
+            generationConfig: { responseModalities: ['IMAGE', 'TEXT'] }
+          })
+        }
+      );
+      const d = await sj(r);
+      if (d.error) return res.status(200).json({ error: d.error.message });
+      const parts = d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts;
+      if (parts) {
+        const imgPart = parts.find(p => p.inlineData);
+        const textPart = parts.find(p => p.text);
+        if (imgPart) return res.status(200).json({ imageBase64: imgPart.inlineData.data, mimeType: imgPart.inlineData.mimeType, text: textPart && textPart.text });
+        if (textPart) return res.status(200).json({ text: textPart.text, noImage: true });
+      }
+      return res.status(200).json({ error: '결과 없음', raw: JSON.stringify(d).slice(0,300) });
     }
 
     return res.status(400).json({ error: 'Unknown action: ' + action });
