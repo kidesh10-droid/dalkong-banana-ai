@@ -131,6 +131,42 @@ module.exports = async function handler(req, res) {
       return res.status(200).json(await sj(r));
     }
 
+    // 해외주식 잔고 조회
+    if (action === 'balance_us') {
+      const { token, mode, accountNo, accountProduct } = req.body;
+      const c = mode==='real' ? KIS_REAL : KIS_MOCK;
+      const tr = mode==='real' ? 'TTTS3012R' : 'VTTS3012R';
+      const r = await fetch(
+        `${c.base}/uapi/overseas-stock/v1/trading/inquire-balance?CANO=${accountNo}&ACNT_PRDT_CD=${accountProduct||'01'}&OVRS_EXCG_CD=NASD&TR_CRCY_CD=USD&CTX_AREA_FK200=&CTX_AREA_NK200=`,
+        { headers:{'content-type':'application/json','authorization':`Bearer ${token}`,'appkey':c.key,'appsecret':c.secret,'tr_id':tr} }
+      );
+      return res.status(200).json(await sj(r));
+    }
+
+    // 국내주식 잔고 + 해외주식 잔고 통합
+    if (action === 'balance_all') {
+      const { token, mode, accountNo, accountProduct } = req.body;
+      const c = mode==='real' ? KIS_REAL : KIS_MOCK;
+
+      // 국내
+      const trKr = mode==='real' ? 'TTTC8434R' : 'VTTC8434R';
+      const [r1, r2] = await Promise.all([
+        fetch(`${c.base}/uapi/domestic-stock/v1/trading/inquire-balance?CANO=${accountNo}&ACNT_PRDT_CD=${accountProduct||'01'}&AFHR_FLPR_YN=N&OFL_YN=&INQR_DVSN=02&UNPR_DVSN=01&FUND_STTL_ICLD_YN=N&FNCG_AMT_AUTO_RDPT_YN=N&PRCS_DVSN=01&CTX_AREA_FK100=&CTX_AREA_NK100=`,
+          { headers:{'content-type':'application/json','authorization':`Bearer ${token}`,'appkey':c.key,'appsecret':c.secret,'tr_id':trKr} }),
+        fetch(`${c.base}/uapi/overseas-stock/v1/trading/inquire-balance?CANO=${accountNo}&ACNT_PRDT_CD=${accountProduct||'01'}&OVRS_EXCG_CD=NASD&TR_CRCY_CD=USD&CTX_AREA_FK200=&CTX_AREA_NK200=`,
+          { headers:{'content-type':'application/json','authorization':`Bearer ${token}`,'appkey':c.key,'appsecret':c.secret,'tr_id':mode==='real'?'TTTS3012R':'VTTS3012R'} })
+      ]);
+
+      const dKr = await sj(r1);
+      const dUs = await sj(r2);
+
+      return res.status(200).json({
+        domestic: dKr,
+        overseas: dUs,
+        rt_cd: dKr.rt_cd
+      });
+    }
+
     // 국내 매수
     if (action === 'buy_kr') {
       const { token, ticker, price, qty, orderType, mode, accountNo, accountProduct } = req.body;
@@ -277,6 +313,84 @@ module.exports = async function handler(req, res) {
       } catch(e) {
         return res.status(200).json({ error: e.message });
       }
+    }
+
+    // ── 네이버 데이터랩 키워드 트렌드 ──
+    if (action === 'datalab_keyword') {
+      const { keyword, startDate, endDate, timeUnit } = req.body;
+      const clientId = process.env.NAVER_CLIENT_ID;
+      const clientSecret = process.env.NAVER_CLIENT_SECRET;
+      if (!clientId || !clientSecret) return res.status(200).json({ error: 'NAVER API 키가 설정되지 않았습니다.' });
+      try {
+        const body = {
+          startDate: startDate || (() => { const d=new Date(); d.setMonth(d.getMonth()-12); return d.toISOString().slice(0,10); })(),
+          endDate: endDate || new Date().toISOString().slice(0,10),
+          timeUnit: timeUnit || 'month',
+          keywordGroups: [{ groupName: keyword, keywords: [keyword] }]
+        };
+        const r = await fetch('https://openapi.naver.com/v1/datalab/search', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Naver-Client-Id': clientId,
+            'X-Naver-Client-Secret': clientSecret
+          },
+          body: JSON.stringify(body)
+        });
+        const d = await r.json();
+        return res.status(200).json(d);
+      } catch(e) { return res.status(200).json({ error: e.message }); }
+    }
+
+    // ── 네이버 쇼핑 키워드 통계 (광고 API) ──
+    if (action === 'shopping_keyword') {
+      const { keyword } = req.body;
+      const clientId = process.env.NAVER_CLIENT_ID;
+      const clientSecret = process.env.NAVER_CLIENT_SECRET;
+      if (!clientId || !clientSecret) return res.status(200).json({ error: 'NAVER API 키 없음' });
+      try {
+        // 네이버 쇼핑 검색 결과로 인기도 추정
+        const r = await fetch(`https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(keyword)}&display=10&sort=sim`, {
+          headers: { 'X-Naver-Client-Id': clientId, 'X-Naver-Client-Secret': clientSecret }
+        });
+        const d = await r.json();
+        return res.status(200).json({ total: d.total, items: d.items || [] });
+      } catch(e) { return res.status(200).json({ error: e.message }); }
+    }
+
+    // ── Imagen 이미지 생성 ──
+    if (action === 'imagen') {
+      const { apiKey, prompt, aspectRatio, sampleCount } = req.body;
+      if (!apiKey) return res.status(200).json({ error: 'API 키 없음' });
+      try {
+        const count = parseInt(sampleCount) || 1;
+        const r = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              instances: [{ prompt }],
+              parameters: {
+                sampleCount: count,
+                aspectRatio: aspectRatio || '16:9',
+                safetyFilterLevel: 'BLOCK_SOME',
+                personGeneration: 'ALLOW_ADULT'
+              }
+            })
+          }
+        );
+        const d = await r.json();
+        if (d.error) return res.status(200).json({ error: d.error.message });
+        if (d.predictions && d.predictions.length > 0) {
+          const images = d.predictions.map(p => ({
+            base64: p.bytesBase64Encoded,
+            mimeType: 'image/png'
+          }));
+          return res.status(200).json({ images });
+        }
+        return res.status(200).json({ error: '이미지 생성 실패', raw: d });
+      } catch(e) { return res.status(200).json({ error: e.message }); }
     }
 
     return res.status(400).json({ error: 'Unknown action: ' + action });
