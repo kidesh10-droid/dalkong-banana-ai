@@ -742,52 +742,191 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
   <div class="spage" id="wsp-monthly">
     <div style="overflow-y:auto;flex:1;padding:14px;background:var(--bg);display:flex;flex-direction:column;gap:14px;">
       <div class="work-card">
-        <div class="work-title">📅 월간 키워드 조회 & 분석</div>
+        <div class="work-title">📅 월간 키워드 검색량 조회</div>
+        <div style="font-size:11px;color:var(--mu);margin-bottom:4px;">네이버 데이터랩 API — 실제 검색량 데이터</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <input id="monthlyKw" class="work-inp" style="flex:1;" placeholder="분석할 키워드"/>
-          <select id="monthlyPeriod" class="work-inp" style="width:auto;padding:9px;"><option value="1">1개월</option><option value="3">3개월</option><option value="6">6개월</option><option value="12">12개월</option></select>
-          <button onclick="getMonthlyKeyword()" class="work-btn">조회</button>
+          <input id="monthlyKw" class="work-inp" style="flex:1;min-width:150px;" placeholder="키워드 입력 (예: 가습기)"/>
+          <select id="monthlyPeriod" class="work-inp" style="width:auto;padding:9px;">
+            <option value="3">3개월</option>
+            <option value="6">6개월</option>
+            <option value="12" selected>12개월</option>
+          </select>
+          <select id="monthlyTimeUnit" class="work-inp" style="width:auto;padding:9px;">
+            <option value="month" selected>월간</option>
+            <option value="week">주간</option>
+            <option value="date">일간</option>
+          </select>
+          <button onclick="getMonthlyKeyword()" class="work-btn">📊 조회</button>
         </div>
-        <div id="monthlyResult" class="work-result">키워드를 입력하면 월간 검색량과 트렌드를 분석합니다.</div>
+        <div id="monthlyStatus" style="font-size:11px;color:var(--mu);min-height:16px;margin-top:4px;"></div>
+        <div id="monthlyChartWrap" style="display:none;margin-top:4px;">
+          <div style="position:relative;height:220px;"><canvas id="monthlyChart"></canvas></div>
+          <div id="monthlyStats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;"></div>
+        </div>
+        <div id="monthlyAiResult" style="display:none;" class="work-result"></div>
+      </div>
+      <div class="work-card">
+        <div class="work-title">🛍️ 네이버 쇼핑 키워드 분석</div>
+        <div style="font-size:11px;color:var(--mu);margin-bottom:8px;">실제 쇼핑 검색 결과 및 경쟁 현황</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <input id="shoppingKw" class="work-inp" style="flex:1;" placeholder="쇼핑 키워드 (예: 라이브박스 가습기)"/>
+          <button onclick="getShoppingKeyword()" class="work-btn">🛒 조회</button>
+        </div>
+        <div id="shoppingResult" class="work-result">쇼핑 키워드를 입력하면 실제 상품 데이터를 분석합니다.</div>
       </div>
     </div>
   </div>
   <div class="spage" id="wsp-video">
     <div style="overflow-y:auto;flex:1;padding:14px;background:var(--bg);display:flex;flex-direction:column;gap:12px;">
-      <div style="font-size:14px;font-weight:700;color:var(--tx);">🎬 AI 영상 제작 (VEO)</div>
+      <div style="font-size:14px;font-weight:700;color:var(--tx);">🎨 AI 이미지 & 영상 제작</div>
+
+      <!-- 탭 -->
       <div class="veo-tab">
-        <button class="veo-tab-btn on" onclick="switchVeo(this,'text')">📝 텍스트→영상</button>
-        <button class="veo-tab-btn" onclick="switchVeo(this,'image')">🖼️ 이미지→영상</button>
+        <button class="veo-tab-btn on" onclick="switchVeo(this,'imagen')">🎨 Imagen 3 (이미지)</button>
+        <button class="veo-tab-btn" onclick="switchVeo(this,'veo_text')">🎬 VEO 3 텍스트→영상</button>
+        <button class="veo-tab-btn" onclick="switchVeo(this,'veo_img')">🖼️ VEO 3 이미지→영상</button>
       </div>
-      <div id="veo-text" class="work-card">
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          <div><div style="font-size:11px;color:var(--mu);margin-bottom:5px;font-weight:500;">영상 설명 (프롬프트)</div><textarea id="veoTextPrompt" class="veo-inp" rows="4" placeholder="예: 한국의 아름다운 봄 벚꽃길을 걸어가는 영상. 시네마틱한 분위기, 따뜻한 햇살..."></textarea></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <div><div style="font-size:11px;color:var(--mu);margin-bottom:4px;font-weight:500;">길이</div><select id="veoDuration" class="work-inp" style="width:100%;padding:9px;"><option value="5">5초</option><option value="8" selected>8초</option><option value="16">16초</option></select></div>
-            <div><div style="font-size:11px;color:var(--mu);margin-bottom:4px;font-weight:500;">화면비율</div><select id="veoAspect" class="work-inp" style="width:100%;padding:9px;"><option value="16:9" selected>16:9 가로</option><option value="9:16">9:16 세로(쇼츠)</option><option value="1:1">1:1 정방형</option></select></div>
-          </div>
-          <button onclick="generateVideo('text')" class="work-btn" style="width:100%;padding:12px;font-size:13px;">🎬 영상 생성 요청</button>
-          <div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:10px;padding:12px;font-size:11px;color:var(--bl);line-height:1.7;">⚠️ <strong>VEO 3 API 안내</strong><br>Google VEO 3는 Google AI Studio/Vertex AI를 통해 제공됩니다.<br>Gemini API 키로 veo-003 모델 접근 가능 시 자동 요청합니다.<br>생성된 영상은 URL로 반환됩니다.</div>
-        </div>
-      </div>
-      <div id="veo-image" class="work-card" style="display:none;">
+
+      <!-- ── Imagen 3 이미지 생성 ── -->
+      <div id="veo-imagen" class="work-card">
+        <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:4px;">🎨 Imagen 3 이미지 생성</div>
+        <div style="font-size:11px;color:var(--mu);margin-bottom:10px;">Google Imagen 3 — 텍스트로 고품질 이미지 생성</div>
         <div style="display:flex;flex-direction:column;gap:10px;">
           <div>
-            <div style="font-size:11px;color:var(--mu);margin-bottom:5px;font-weight:500;">이미지 업로드</div>
-            <div style="border:2px dashed var(--bd);border-radius:12px;padding:24px;text-align:center;cursor:pointer;background:var(--b3);" onclick="document.getElementById('veoImgIn').click()">
-              <div id="veoImgPreview" style="display:none;"><img id="veoImgThumb" style="max-height:140px;border-radius:8px;"/></div>
+            <div style="font-size:11px;color:var(--mu);margin-bottom:5px;font-weight:500;">이미지 설명 (한국어 가능)</div>
+            <textarea id="imagenPrompt" class="veo-inp" rows="3" placeholder="예: 한국 20대 여성이 벚꽃 길을 우아하게 걷고 있는 모습, 시네마틱, 4K"></textarea>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+            <div>
+              <div style="font-size:11px;color:var(--mu);margin-bottom:4px;font-weight:500;">화면비율</div>
+              <select id="imagenAspect" class="work-inp" style="width:100%;padding:9px;">
+                <option value="16:9" selected>16:9 가로</option>
+                <option value="9:16">9:16 세로</option>
+                <option value="1:1">1:1 정방형</option>
+                <option value="4:3">4:3</option>
+              </select>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--mu);margin-bottom:4px;font-weight:500;">생성 수</div>
+              <select id="imagenCount" class="work-inp" style="width:100%;padding:9px;">
+                <option value="1" selected>1장</option>
+                <option value="2">2장</option>
+                <option value="4">4장</option>
+              </select>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--mu);margin-bottom:4px;font-weight:500;">스타일</div>
+              <select id="imagenStyle" class="work-inp" style="width:100%;padding:9px;">
+                <option value="">기본</option>
+                <option value="photorealistic, high detail">사진같은</option>
+                <option value="cinematic, dramatic lighting">시네마틱</option>
+                <option value="anime style">애니메이션</option>
+                <option value="watercolor painting">수채화</option>
+                <option value="oil painting, artistic">유화</option>
+                <option value="product photo, white background">상품사진</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;background:var(--b3);border-radius:10px;padding:9px;">
+            <input type="checkbox" id="imagenTranslate" checked/>
+            <label for="imagenTranslate" style="font-size:12px;cursor:pointer;color:var(--tx);">🌐 한국어 → 영어 자동 번역 후 생성 (품질 향상)</label>
+          </div>
+          <button onclick="generateImagen()" id="imagenBtn" class="work-btn" style="width:100%;padding:12px;font-size:13px;">🎨 이미지 생성</button>
+          <div id="imagenProgress" style="display:none;text-align:center;padding:20px;">
+            <div style="font-size:28px;margin-bottom:8px;">⏳</div>
+            <div style="font-size:12px;color:var(--mu);">Imagen 3로 이미지 생성 중... (10~30초)</div>
+          </div>
+          <div id="imagenResult" style="display:none;">
+            <div style="font-size:11px;font-weight:700;color:var(--tx);margin-bottom:8px;">생성된 이미지</div>
+            <div id="imagenImages" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;"></div>
+            <div id="imagenPromptUsed" style="margin-top:8px;font-size:10px;color:var(--mu);background:var(--b3);border-radius:8px;padding:8px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── VEO 3 텍스트→영상 ── -->
+      <div id="veo-veo_text" class="work-card" style="display:none;">
+        <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:4px;">🎬 VEO 3 — 텍스트→영상</div>
+        <div style="font-size:11px;color:var(--mu);margin-bottom:10px;">Google Vertex AI VEO 3 — 텍스트로 영상 생성</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div>
+            <div style="font-size:11px;color:var(--mu);margin-bottom:5px;font-weight:500;">영상 설명 (한국어 가능)</div>
+            <textarea id="veoTextPrompt" class="veo-inp" rows="3" placeholder="예: 한국의 아름다운 봄 벚꽃길을 걸어가는 여성, 시네마틱, 슬로우모션"></textarea>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+            <div>
+              <div style="font-size:11px;color:var(--mu);margin-bottom:4px;font-weight:500;">길이</div>
+              <select id="veoDuration" class="work-inp" style="width:100%;padding:9px;">
+                <option value="5">5초</option>
+                <option value="8" selected>8초</option>
+              </select>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--mu);margin-bottom:4px;font-weight:500;">화면비율</div>
+              <select id="veoAspect" class="work-inp" style="width:100%;padding:9px;">
+                <option value="16:9" selected>16:9 가로</option>
+                <option value="9:16">9:16 세로(쇼츠)</option>
+                <option value="1:1">1:1 정방형</option>
+              </select>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--mu);margin-bottom:4px;font-weight:500;">모델</div>
+              <select id="veoModel" class="work-inp" style="width:100%;padding:9px;">
+                <option value="veo-3.0-generate-preview">VEO 3 (최신)</option>
+                <option value="veo-2.0-generate-001">VEO 2</option>
+              </select>
+            </div>
+          </div>
+          <div style="background:var(--b3);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px;">
+            <div style="font-size:11px;font-weight:600;color:var(--tx);">🔑 Vertex AI 설정</div>
+            <input id="veoProjectId" class="work-inp" placeholder="Google Cloud Project ID" style="font-family:Space Mono,monospace;font-size:11px;"/>
+            <input id="veoAccessToken" type="password" class="work-inp" placeholder="Access Token (gcloud auth print-access-token)" style="font-family:Space Mono,monospace;font-size:11px;"/>
+            <div style="font-size:10px;color:var(--mu);">터미널에서: <code style="background:var(--b4);padding:2px 5px;border-radius:4px;">gcloud auth print-access-token</code></div>
+          </div>
+          <button onclick="generateVeo('text')" id="veoTextBtn" class="work-btn" style="width:100%;padding:12px;font-size:13px;">🎬 영상 생성 요청</button>
+          <div id="veoTextProgress" style="display:none;text-align:center;padding:20px;">
+            <div style="font-size:28px;margin-bottom:8px;">🎬</div>
+            <div style="font-size:12px;color:var(--mu);">VEO 3 영상 생성 중... (2~5분 소요)</div>
+            <div id="veoTextProgressMsg" style="font-size:10px;color:var(--mu);margin-top:4px;"></div>
+          </div>
+          <div id="veoTextResult" style="display:none;"></div>
+        </div>
+      </div>
+
+      <!-- ── VEO 3 이미지→영상 ── -->
+      <div id="veo-veo_img" class="work-card" style="display:none;">
+        <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:4px;">🖼️ VEO 3 — 이미지→영상</div>
+        <div style="font-size:11px;color:var(--mu);margin-bottom:10px;">이미지를 업로드하면 VEO 3가 영상으로 변환</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div>
+            <div style="font-size:11px;color:var(--mu);margin-bottom:5px;font-weight:500;">이미지 업로드 (또는 Imagen으로 먼저 생성)</div>
+            <div style="border:2px dashed var(--bd);border-radius:12px;padding:20px;text-align:center;cursor:pointer;background:var(--b3);" onclick="document.getElementById('veoImgIn').click()">
+              <div id="veoImgPreview" style="display:none;"><img id="veoImgThumb" style="max-height:160px;border-radius:8px;"/></div>
               <div id="veoImgPlaceholder" style="color:var(--mu);font-size:12px;">🖼️ 클릭하여 이미지 선택<br><span style="font-size:10px;">JPG, PNG 권장</span></div>
             </div>
             <input type="file" id="veoImgIn" accept="image/*" style="display:none" onchange="onVeoImgSel(event)"/>
           </div>
-          <div><div style="font-size:11px;color:var(--mu);margin-bottom:5px;font-weight:500;">영상 설명 (선택)</div><textarea id="veoImgPrompt" class="veo-inp" rows="3" placeholder="이미지를 어떻게 움직일지 설명..."></textarea></div>
-          <button onclick="generateVideo('image')" class="work-btn" style="width:100%;padding:12px;font-size:13px;">🎬 이미지→영상 생성</button>
+          <div>
+            <div style="font-size:11px;color:var(--mu);margin-bottom:5px;font-weight:500;">영상 설명 (선택)</div>
+            <textarea id="veoImgPrompt" class="veo-inp" rows="2" placeholder="이미지를 어떻게 움직일지 (예: 카메라가 천천히 줌인하며 배경이 흐릿해진다)"></textarea>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div><div style="font-size:11px;color:var(--mu);margin-bottom:4px;font-weight:500;">길이</div><select id="veoImgDuration" class="work-inp" style="width:100%;padding:9px;"><option value="5">5초</option><option value="8" selected>8초</option></select></div>
+            <div><div style="font-size:11px;color:var(--mu);margin-bottom:4px;font-weight:500;">화면비율</div><select id="veoImgAspect" class="work-inp" style="width:100%;padding:9px;"><option value="16:9" selected>16:9</option><option value="9:16">9:16</option><option value="1:1">1:1</option></select></div>
+          </div>
+          <div style="background:var(--b3);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px;">
+            <div style="font-size:11px;font-weight:600;color:var(--tx);">🔑 Vertex AI 설정 (위와 동일하면 자동 적용)</div>
+            <div style="font-size:10px;color:var(--mu);">위 텍스트→영상 탭에서 Project ID와 Access Token을 설정하면 자동 적용됩니다.</div>
+          </div>
+          <button onclick="generateVeo('image')" id="veoImgBtn" class="work-btn" style="width:100%;padding:12px;font-size:13px;">🎬 이미지→영상 생성</button>
+          <div id="veoImgProgress" style="display:none;text-align:center;padding:20px;">
+            <div style="font-size:28px;margin-bottom:8px;">🎬</div>
+            <div style="font-size:12px;color:var(--mu);">VEO 3 영상 생성 중... (2~5분 소요)</div>
+          </div>
+          <div id="veoImgResult" style="display:none;"></div>
         </div>
       </div>
-      <div id="veoResult" style="display:none;" class="work-card">
-        <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:8px;">생성 결과</div>
-        <div id="veoResultContent"></div>
-      </div>
+
     </div>
   </div>
 </div>
@@ -1738,7 +1877,329 @@ function getMonthlyKeyword(){
   workAI(prompt,'monthlyResult');
 }
 
-// ══ VEO 영상 ══
+// ══ VEO 탭 전환 ══
+function switchVeo(btn,type){
+  document.querySelectorAll('.veo-tab-btn').forEach(function(b){b.classList.remove('on');});
+  btn.classList.add('on');
+  ['imagen','veo_text','veo_img'].forEach(function(t){
+    var el=document.getElementById('veo-'+t);
+    if(el)el.style.display=t===type?'flex':'none';
+  });
+}
+
+// ══ Imagen 3 이미지 생성 ══
+async function generateImagen(){
+  if(!gKey){alert('AI채팅 탭에서 Gemini API 키를 먼저 저장해주세요!');return;}
+  var promptText=document.getElementById('imagenPrompt').value.trim();
+  if(!promptText){alert('이미지 설명을 입력해주세요!');return;}
+  var aspect=document.getElementById('imagenAspect').value;
+  var count=parseInt(document.getElementById('imagenCount').value)||1;
+  var style=document.getElementById('imagenStyle').value;
+  var doTranslate=document.getElementById('imagenTranslate').checked;
+
+  var btn=document.getElementById('imagenBtn');
+  btn.disabled=true;btn.textContent='생성 중...';
+  document.getElementById('imagenProgress').style.display='block';
+  document.getElementById('imagenResult').style.display='none';
+
+  var finalPrompt=promptText;
+
+  try{
+    // 1단계: 한국어 번역 (체크된 경우)
+    if(doTranslate&&/[가-힣]/.test(promptText)){
+      var transR=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:gKey,model:gMod,messages:[{role:'user',parts:[{text:'다음 한국어를 Imagen 이미지 생성에 최적화된 영어 프롬프트로 번역해주세요. 번역문만 출력, 설명 없이:\n'+promptText+(style?' Style: '+style:'')}]}],systemPrompt:'이미지 생성 프롬프트 전문가. 영어로만 출력.'})});
+      var transD=await transR.json();
+      if(transD.reply)finalPrompt=transD.reply.trim();
+    }else if(style){
+      finalPrompt=promptText+'. '+style;
+    }
+
+    // 2단계: Imagen 3 API 호출
+    var r=await fetch('/api/stock?action=imagen',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:gKey,prompt:finalPrompt,aspectRatio:aspect,sampleCount:count})});
+    var d=await r.json();
+
+    if(d.error){
+      document.getElementById('imagenProgress').style.display='none';
+      document.getElementById('imagenResult').style.display='block';
+      document.getElementById('imagenImages').innerHTML='<div style="color:var(--up);font-size:12px;padding:10px;">❌ '+d.error+'</div>';
+      return;
+    }
+
+    // 결과 표시
+    var images=d.images||[];
+    if(d.imageBase64)images=[{base64:d.imageBase64,mimeType:d.mimeType||'image/png'}];
+
+    document.getElementById('imagenProgress').style.display='none';
+    document.getElementById('imagenResult').style.display='block';
+
+    if(images.length>0){
+      document.getElementById('imagenImages').innerHTML=images.map(function(img,i){
+        var src='data:'+(img.mimeType||'image/png')+';base64,'+img.base64;
+        return '<div style="position:relative;">'
+          +'<img src="'+src+'" style="width:100%;border-radius:10px;border:1px solid var(--bd);cursor:pointer;" onclick="downloadImage(this,'+i+')" title="클릭하여 다운로드"/>'
+          +'<button onclick="useForVeo(this)" data-src="'+src+'" style="position:absolute;bottom:6px;right:6px;padding:4px 8px;border-radius:6px;border:none;background:rgba(0,0,0,.6);color:#fff;font-size:10px;cursor:pointer;">▶ VEO에 사용</button>'
+          +'</div>';
+      }).join('');
+      document.getElementById('imagenPromptUsed').textContent='사용된 프롬프트: '+finalPrompt;
+    }else{
+      document.getElementById('imagenImages').innerHTML='<div style="color:var(--mu);font-size:12px;padding:10px;">생성된 이미지가 없습니다.</div>';
+    }
+  }catch(e){
+    document.getElementById('imagenProgress').style.display='none';
+    document.getElementById('imagenResult').style.display='block';
+    document.getElementById('imagenImages').innerHTML='<div style="color:var(--up);font-size:12px;padding:10px;">❌ 오류: '+e.message+'</div>';
+  }finally{btn.disabled=false;btn.textContent='🎨 이미지 생성';}
+}
+
+function downloadImage(img,idx){
+  var a=document.createElement('a');a.href=img.src;a.download='imagen_'+idx+'.png';a.click();
+}
+function useForVeo(btn){
+  var src=btn.dataset.src;
+  // VEO 이미지→영상 탭으로 이동하고 이미지 세팅
+  document.getElementById('veoImgThumb').src=src;
+  document.getElementById('veoImgPreview').style.display='block';
+  document.getElementById('veoImgPlaceholder').style.display='none';
+  // base64 저장
+  veoImgData={mimeType:'image/png',data:src.split(',')[1]};
+  // 탭 전환
+  document.querySelectorAll('.veo-tab-btn').forEach(function(b){b.classList.remove('on');});
+  document.querySelectorAll('.veo-tab-btn')[2].classList.add('on');
+  ['imagen','veo_text','veo_img'].forEach(function(t){var el=document.getElementById('veo-'+t);if(el)el.style.display=t==='veo_img'?'flex':'none';});
+  alert('이미지가 VEO 탭으로 전송됐어요! 영상 설명을 입력하고 생성해주세요.');
+}
+
+// ══ VEO 3 영상 생성 ══
+async function generateVeo(type){
+  var projectId=document.getElementById('veoProjectId').value.trim();
+  var accessToken=document.getElementById('veoAccessToken').value.trim();
+  var model=document.getElementById('veoModel')&&document.getElementById('veoModel').value||'veo-3.0-generate-preview';
+  if(!projectId||!accessToken){alert('Google Cloud Project ID와 Access Token을 입력해주세요!\n\n터미널에서: gcloud auth print-access-token');return;}
+
+  var progressId=type==='text'?'veoTextProgress':'veoImgProgress';
+  var resultId=type==='text'?'veoTextResult':'veoImgResult';
+  var btnId=type==='text'?'veoTextBtn':'veoImgBtn';
+
+  document.getElementById(progressId).style.display='block';
+  document.getElementById(resultId).style.display='none';
+  document.getElementById(btnId).disabled=true;
+
+  try{
+    var promptText=type==='text'?document.getElementById('veoTextPrompt').value.trim():document.getElementById('veoImgPrompt').value.trim();
+    var aspect=type==='text'?document.getElementById('veoAspect').value:document.getElementById('veoImgAspect').value;
+    var duration=parseInt(type==='text'?document.getElementById('veoDuration').value:document.getElementById('veoImgDuration').value)||8;
+
+    // 한국어면 번역
+    var finalPrompt=promptText;
+    if(gKey&&promptText&&/[가-힣]/.test(promptText)){
+      try{
+        var tr=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:gKey,model:gMod,messages:[{role:'user',parts:[{text:'다음을 VEO 영상 생성용 영어 프롬프트로 번역해주세요. 번역문만 출력:\n'+promptText}]}],systemPrompt:'영상 프롬프트 전문가. 영어로만.'})});
+        var trd=await tr.json();if(trd.reply)finalPrompt=trd.reply.trim();
+      }catch(e){}
+    }
+
+    var endpoint='https://us-central1-aiplatform.googleapis.com/v1/projects/'+projectId+'/locations/us-central1/publishers/google/models/'+model+':predictLongRunning';
+
+    var reqBody={instances:[{prompt:finalPrompt}],parameters:{aspectRatio:aspect,durationSeconds:duration,sampleCount:1}};
+    if(type==='image'&&veoImgData){
+      reqBody.instances[0].image={bytesBase64Encoded:veoImgData.data,mimeType:veoImgData.mimeType||'image/png'};
+    }
+
+    if(type==='text'&&document.getElementById('veoTextProgressMsg')){
+      document.getElementById('veoTextProgressMsg').textContent='프롬프트: '+finalPrompt.slice(0,80)+'...';
+    }
+
+    var r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+accessToken},body:JSON.stringify(reqBody)});
+    var d=await r.json();
+
+    document.getElementById(progressId).style.display='none';
+    document.getElementById(resultId).style.display='block';
+
+    if(d.error){
+      document.getElementById(resultId).innerHTML='<div style="color:var(--up);font-size:12px;padding:12px;background:#FEF2F2;border-radius:10px;">❌ '+d.error.message+'<br><br><strong>해결방법:</strong><br>1. Project ID 확인<br>2. Access Token 재발급 (gcloud auth print-access-token)<br>3. Vertex AI API 활성화 확인</div>';
+      return;
+    }
+
+    // Long Running Operation 처리
+    if(d.name){
+      var opName=d.name;
+      document.getElementById(progressId).style.display='block';
+      document.getElementById(resultId).style.display='none';
+      // 폴링
+      var pollCount=0;var maxPoll=30;
+      var pollTimer=setInterval(async function(){
+        pollCount++;if(pollCount>maxPoll){clearInterval(pollTimer);document.getElementById(progressId).style.display='none';document.getElementById(resultId).style.display='block';document.getElementById(resultId).innerHTML='<div style="color:var(--mu);font-size:12px;padding:12px;">⏱️ 시간 초과 (5분). 나중에 다시 시도해주세요.</div>';return;}
+        try{
+          var pr=await fetch('https://us-central1-aiplatform.googleapis.com/v1/'+opName,{headers:{'Authorization':'Bearer '+accessToken}});
+          var pd=await pr.json();
+          if(pd.done){
+            clearInterval(pollTimer);
+            document.getElementById(progressId).style.display='none';
+            document.getElementById(resultId).style.display='block';
+            if(pd.error){document.getElementById(resultId).innerHTML='<div style="color:var(--up);font-size:12px;padding:12px;">❌ '+pd.error.message+'</div>';return;}
+            var videos=pd.response&&pd.response.videos;
+            if(videos&&videos.length>0){
+              var vidHtml=videos.map(function(v,i){
+                if(v.bytesBase64Encoded){
+                  var src='data:video/mp4;base64,'+v.bytesBase64Encoded;
+                  return '<div style="margin-bottom:10px;">'
+                    +'<video controls style="width:100%;border-radius:10px;border:1px solid var(--bd);" src="'+src+'"></video>'
+                    +'<button onclick="downloadVideo(this)" data-src="'+src+'" style="width:100%;margin-top:6px;padding:8px;border-radius:8px;border:1px solid var(--bd);background:var(--b3);color:var(--tx);font-size:12px;cursor:pointer;">⬇️ 영상 다운로드</button>'
+                    +'</div>';
+                }else if(v.uri){
+                  return '<div style="margin-bottom:10px;"><a href="'+v.uri+'" target="_blank" style="display:block;padding:12px;background:rgba(59,130,246,.08);border-radius:10px;color:var(--bl);font-size:12px;text-decoration:none;">🎬 영상 링크 열기: '+v.uri+'</a></div>';
+                }
+                return '';
+              }).join('');
+              document.getElementById(resultId).innerHTML='<div style="font-size:11px;font-weight:700;color:var(--tx);margin-bottom:8px;">✅ 영상 생성 완료!</div>'+vidHtml+'<div style="font-size:10px;color:var(--mu);margin-top:6px;">사용 프롬프트: '+finalPrompt.slice(0,100)+'</div>';
+            }else{
+              document.getElementById(resultId).innerHTML='<div style="font-size:12px;color:var(--mu);padding:12px;">응답 데이터: <pre style="font-size:10px;overflow:auto;">'+JSON.stringify(pd,null,2).slice(0,500)+'</pre></div>';
+            }
+          }
+        }catch(pe){console.log('poll error',pe);}
+      },10000); // 10초마다 폴링
+    }else{
+      document.getElementById(resultId).innerHTML='<div style="font-size:12px;color:var(--mu);padding:12px;"><pre style="font-size:10px;overflow:auto;">'+JSON.stringify(d,null,2).slice(0,500)+'</pre></div>';
+    }
+  }catch(e){
+    document.getElementById(progressId).style.display='none';
+    document.getElementById(resultId).style.display='block';
+    document.getElementById(resultId).innerHTML='<div style="color:var(--up);font-size:12px;padding:12px;">❌ 오류: '+e.message+'</div>';
+  }finally{document.getElementById(btnId).disabled=false;document.getElementById(btnId).textContent=type==='text'?'🎬 영상 생성 요청':'🎬 이미지→영상 생성';}
+}
+
+function downloadVideo(btn){var a=document.createElement('a');a.href=btn.dataset.src;a.download='veo_video.mp4';a.click();}
+
+// ══ 월간 키워드 (네이버 데이터랩) ══
+var monthlyChartInst=null;
+async function getMonthlyKeyword(){
+  var kw=document.getElementById('monthlyKw').value.trim();
+  if(!kw){alert('키워드를 입력해주세요!');return;}
+  var period=parseInt(document.getElementById('monthlyPeriod').value)||12;
+  var timeUnit=document.getElementById('monthlyTimeUnit').value||'month';
+  var status=document.getElementById('monthlyStatus');
+  status.textContent='📊 네이버 데이터랩 조회 중...';status.style.color='var(--bl)';
+  document.getElementById('monthlyChartWrap').style.display='none';
+  document.getElementById('monthlyAiResult').style.display='none';
+
+  // 날짜 계산
+  var endDate=new Date();
+  var startDate=new Date();
+  startDate.setMonth(startDate.getMonth()-period);
+  var fmt=function(d){return d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0')+'-'+d.getDate().toString().padStart(2,'0');};
+
+  try{
+    var r=await fetch('/api/stock?action=datalab_keyword',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({keyword:kw,startDate:fmt(startDate),endDate:fmt(endDate),timeUnit:timeUnit})});
+    var d=await r.json();
+
+    if(d.error||d.errorMessage){
+      // 데이터랩 API 없으면 AI 분석으로 폴백
+      status.textContent='⚠️ 네이버 API 미설정 → AI 분석으로 대체 중...';
+      if(!gKey){status.textContent='❌ 네이버 API 키와 Gemini API 키가 모두 필요합니다.';return;}
+      await getMonthlyKeywordAI(kw,period,timeUnit);
+      return;
+    }
+
+    // 데이터랩 결과 처리
+    var results=d.results&&d.results[0]&&d.results[0].data;
+    if(!results||results.length===0){status.textContent='데이터가 없습니다.';return;}
+
+    status.textContent='✅ '+results.length+'개 데이터 포인트 조회 완료';status.style.color='var(--dn)';
+
+    // 차트 그리기
+    document.getElementById('monthlyChartWrap').style.display='block';
+    var labels=results.map(function(r){return r.period;});
+    var values=results.map(function(r){return r.ratio;});
+    var max=Math.max.apply(null,values);var min=Math.min.apply(null,values);var avg=values.reduce(function(s,v){return s+v;},0)/values.length;
+
+    if(monthlyChartInst){try{monthlyChartInst.destroy();}catch(e){}}
+    var ctx=document.getElementById('monthlyChart').getContext('2d');
+    monthlyChartInst=new Chart(ctx,{
+      type:'line',
+      data:{labels:labels,datasets:[{label:kw+' 검색 트렌드',data:values,borderColor:'#3B82F6',backgroundColor:'rgba(59,130,246,0.08)',borderWidth:2,pointRadius:3,pointBackgroundColor:'#3B82F6',fill:true,tension:0.4}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return '검색량 지수: '+c.parsed.y.toFixed(1);}}}},scales:{x:{ticks:{font:{size:9},maxTicksLimit:12,color:'var(--mu)'},grid:{color:'rgba(0,0,0,0.04)'}},y:{ticks:{font:{size:9},color:'var(--mu)'},grid:{color:'rgba(0,0,0,0.04)'}}}}
+    });
+
+    // 통계
+    document.getElementById('monthlyStats').innerHTML=[
+      {label:'최고 지수',val:max.toFixed(1),color:'var(--up)'},
+      {label:'최저 지수',val:min.toFixed(1),color:'var(--dn)'},
+      {label:'평균 지수',val:avg.toFixed(1),color:'var(--bl)'}
+    ].map(function(s){return '<div style="background:var(--b2);border:1px solid var(--bd);border-radius:10px;padding:10px;text-align:center;"><div style="font-size:10px;color:var(--mu);margin-bottom:4px;">'+s.label+'</div><div style="font-size:18px;font-weight:700;color:'+s.color+';">'+s.val+'</div></div>';}).join('');
+
+    // AI 추가 분석
+    if(gKey){
+      status.textContent='✅ 조회 완료 · AI 추가 분석 중...';
+      var aiParts=['"'+kw+'" 키워드 네이버 검색 트렌드 분석 결과:','최고: '+max.toFixed(1)+', 최저: '+min.toFixed(1)+', 평균: '+avg.toFixed(1),'데이터 기간: '+labels[0]+' ~ '+labels[labels.length-1],'','다음을 분석해주세요:','1. 시즌성 패턴','2. 검색량 증감 원인','3. 향후 트렌드 예측','4. 마케팅 최적 시점','5. 핵심 인사이트 3가지'];var aiPrompt=aiParts.join('\n');
+      try{
+        var ar=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:gKey,model:gMod,messages:[{role:'user',parts:[{text:aiPrompt}]}],systemPrompt:'이커머스 마케팅 전문가.'})});
+        var ad=await ar.json();
+        if(ad.reply){document.getElementById('monthlyAiResult').style.display='block';document.getElementById('monthlyAiResult').textContent='🤖 AI 분석:\n\n'+ad.reply;}
+      }catch(e){}
+      status.textContent='✅ 조회 & AI 분석 완료';
+    }
+
+  }catch(e){status.textContent='❌ 오류: '+e.message;status.style.color='var(--up)';}
+}
+
+async function getMonthlyKeywordAI(kw,period,timeUnit){
+  if(!gKey)return;
+  var parts2=['"'+kw+'" 키워드 최근 '+period+'개월 분석:','1. 월별 검색량 트렌드 (상대적 수치로 표)','2. 시즌성 패턴','3. 급상승/급하락 시점','4. 향후 1개월 예측','5. 마케팅 최적 시점','6. 경쟁 키워드 5개'];var prompt=parts2.join('\n');
+  try{
+    var r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:gKey,model:gMod,messages:[{role:'user',parts:[{text:prompt}]}],systemPrompt:'이커머스 마케팅 전문가. 실용적 분석.'})});
+    var d=await r.json();
+    document.getElementById('monthlyAiResult').style.display='block';
+    document.getElementById('monthlyAiResult').textContent=d.reply||'분석 실패';
+    document.getElementById('monthlyStatus').textContent='✅ AI 분석 완료 (네이버 API 연동 시 실제 데이터 조회 가능)';
+    document.getElementById('monthlyStatus').style.color='var(--mu)';
+  }catch(e){document.getElementById('monthlyStatus').textContent='❌ AI 분석 오류: '+e.message;}
+}
+
+async function getShoppingKeyword(){
+  var kw=document.getElementById('shoppingKw').value.trim();
+  if(!kw){alert('키워드를 입력해주세요!');return;}
+  document.getElementById('shoppingResult').textContent='🛒 네이버 쇼핑 데이터 조회 중...';
+  try{
+    var r=await fetch('/api/stock?action=shopping_keyword',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({keyword:kw})});
+    var d=await r.json();
+
+    if(d.error){
+      // AI 폴백
+      if(!gKey){document.getElementById('shoppingResult').textContent='❌ 네이버 API 키가 필요합니다.';return;}
+      var aiP='"'+kw+'" 네이버 쇼핑 키워드 분석:\n1. 예상 월 검색량\n2. 경쟁 강도\n3. 평균 상품 가격대\n4. 상위 노출 상품 특징\n5. 광고 전략 추천';
+      var ar=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:gKey,model:gMod,messages:[{role:'user',parts:[{text:aiP}]}],systemPrompt:'이커머스 전문가.'})});
+      var ad=await ar.json();
+      document.getElementById('shoppingResult').textContent=ad.reply||'분석 실패';
+      return;
+    }
+
+    var total=d.total||0;var items=d.items||[];
+    var priceList=items.filter(function(x){return x.lprice;}).map(function(x){return parseInt(x.lprice);});
+    var avgPrice=priceList.length?Math.round(priceList.reduce(function(s,v){return s+v;},0)/priceList.length):0;
+    var result='📊 네이버 쇼핑 "'+kw+'" 조회 결과\n\n';
+    result+='📦 총 상품 수: '+total.toLocaleString()+'개\n';
+    if(avgPrice>0)result+='💰 평균 가격: '+avgPrice.toLocaleString()+'원\n';
+    result+='\n🏆 상위 10개 상품:\n';
+    items.slice(0,10).forEach(function(item,i){
+      var title=item.title.replace(/<[^>]*>/g,'');
+      var price=parseInt(item.lprice||0).toLocaleString();
+      var mall=item.mallName||'';
+      result+=(i+1)+'. '+title+'\n   '+price+'원 | '+mall+'\n';
+    });
+
+    if(gKey&&items.length>0){
+      result+='\n🤖 AI 분석 중...\n';
+      document.getElementById('shoppingResult').textContent=result;
+      var aiP2='네이버 쇼핑 "'+kw+'" 검색 결과 (총 '+total+'개 상품, 평균가 '+avgPrice+'원)를 바탕으로:\n1. 시장 경쟁 강도 분석\n2. 가격 전략 추천\n3. 상위 노출을 위한 상품명/이미지 전략\n4. 광고비 대비 효율 예측\n5. 틈새 키워드 추천 3개';
+      var ar2=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:gKey,model:gMod,messages:[{role:'user',parts:[{text:aiP2}]}],systemPrompt:'이커머스 마케팅 전문가.'})});
+      var ad2=await ar2.json();
+      if(ad2.reply)result+='\n'+ad2.reply;
+    }
+    document.getElementById('shoppingResult').textContent=result;
+  }catch(e){document.getElementById('shoppingResult').textContent='❌ 오류: '+e.message;}
+}
+
+// ══ VEO 이미지 선택 ══
 function onVeoImgSel(e){
   var f=e.target.files[0];if(!f)return;
   var rd=new FileReader();
@@ -1749,25 +2210,6 @@ function onVeoImgSel(e){
     document.getElementById('veoImgPlaceholder').style.display='none';
   };
   rd.readAsDataURL(f);
-}
-async function generateVideo(type){
-  if(!gKey){alert('Gemini API 키 먼저!');return;}
-  var prompt=type==='text'?document.getElementById('veoTextPrompt').value.trim():document.getElementById('veoImgPrompt').value.trim();
-  var duration=document.getElementById('veoDuration').value;var aspect=document.getElementById('veoAspect').value;
-  if(type==='text'&&!prompt){alert('영상 설명을 입력해주세요!');return;}
-  if(type==='image'&&!veoImgData){alert('이미지를 업로드해주세요!');return;}
-  var resultEl=document.getElementById('veoResult');var contentEl=document.getElementById('veoResultContent');
-  resultEl.style.display='flex';contentEl.innerHTML='<div style="font-size:12px;color:var(--mu);">⏳ VEO 3 영상 생성 요청 중...</div>';
-  try{
-    var messages=[{role:'user',parts:[]}];
-    if(type==='image'&&veoImgData)messages[0].parts.push({inlineData:veoImgData});
-    var veoPrompt='VEO 영상 생성 요청:\n프롬프트: '+prompt+'\n길이: '+duration+'초\n비율: '+aspect+'\n\n이 프롬프트로 영상 생성 가능 여부와 최적화된 영어 프롬프트를 제안해주세요. 그리고 실제 VEO API 요청 방법을 안내해주세요.';
-    messages[0].parts.push({text:veoPrompt});
-    var r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:gKey,model:gMod,messages:messages,systemPrompt:'AI 영상 제작 전문가.'})});
-    var d=await r.json();
-    if(d.error)throw new Error(d.error.message);
-    contentEl.innerHTML='<div style="font-size:12px;color:var(--tx);line-height:1.7;white-space:pre-wrap;">'+esc(d.reply||'')+'</div><div style="margin-top:12px;padding:10px;background:rgba(59,130,246,.08);border-radius:8px;font-size:11px;color:var(--bl);">💡 실제 VEO 3 영상 생성은 Google Vertex AI API를 통해 가능합니다.<br>현재 Gemini API에서 veo-003 모델 지원 시 자동 연동될 예정입니다.</div>';
-  }catch(e){contentEl.innerHTML='<div style="font-size:12px;color:var(--up);">오류: '+e.message+'</div>';}
 }
 </script>
 </body>
