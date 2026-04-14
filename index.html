@@ -306,6 +306,7 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
     <button class="stab" onclick="switchSp(this,'analysis')">🤖 AI분석</button>
     <button class="stab" onclick="switchSp(this,'auto')">⚡ 자동매매</button>
     <button class="stab" onclick="switchSp(this,'balance')">💰 잔고/주문</button>
+    <button class="stab" onclick="switchSp(this,'portfolio')">📈 포트폴리오</button>
     <div class="stabs-right">
       <div class="lbadge"><div class="ldot"></div>LIVE</div>
       <select class="msel" id="tMode" onchange="setMode(this.value)"><option value="mock">🟡 모의</option><option value="real">🔴 실전</option></select>
@@ -495,6 +496,68 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
       </div>
     </div>
   </div>
+
+  <!-- 포트폴리오 탭 -->
+  <div class="spage" id="sp-portfolio">
+    <div style="overflow-y:auto;flex:1;padding:14px;display:flex;flex-direction:column;gap:12px;">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <div id="pfAcctTabs" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+        <button onclick="addPfAcct()" style="padding:5px 12px;border-radius:6px;border:1px solid rgba(255,225,53,.3);background:rgba(255,225,53,.08);color:var(--y);font-size:11px;cursor:pointer;">+ 계좌 추가</button>
+        <button onclick="loadPortfolio()" style="margin-left:auto;padding:5px 12px;border-radius:6px;border:1px solid var(--bd);background:var(--b3);color:var(--mu);font-size:11px;cursor:pointer;">↻ 새로고침</button>
+        <span id="pfUpdTime" style="font-size:9px;color:var(--mu);"></span>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button id="pfCurKrw" class="stab on" onclick="setPfCur('KRW')" style="padding:4px 14px;border-radius:20px;">KRW</button>
+        <button id="pfCurUsd" class="stab" onclick="setPfCur('USD')" style="padding:4px 14px;border-radius:20px;">USD</button>
+        <span id="pfExRate" style="font-size:10px;color:var(--mu);margin-left:6px;"></span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+        <div class="bx"><div class="bxl">총 평가액</div><div class="bxv" id="pfTotEval" style="font-size:18px;">-</div></div>
+        <div class="bx"><div class="bxl">총 매입가</div><div class="bxv" id="pfTotBuy" style="font-size:18px;">-</div></div>
+        <div class="bx"><div class="bxl">평가 손익</div><div class="bxv" id="pfPnl" style="font-size:18px;">-</div></div>
+        <div class="bx"><div class="bxl">일간 수익</div><div class="bxv" id="pfDayPnl" style="font-size:18px;">-</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="card" style="padding:14px;">
+          <div style="font-size:11px;font-weight:700;color:var(--y);margin-bottom:8px;">🍩 자산 구성</div>
+          <div style="position:relative;width:160px;height:160px;margin:0 auto;">
+            <canvas id="pfDonut"></canvas>
+            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
+              <div style="font-size:9px;color:var(--mu);">전체</div>
+              <div id="pfDonutCenter" style="font-size:11px;font-weight:700;"></div>
+            </div>
+          </div>
+          <div id="pfLegend" style="margin-top:8px;display:flex;flex-direction:column;gap:3px;max-height:120px;overflow-y:auto;"></div>
+        </div>
+        <div class="card" style="padding:14px;">
+          <div style="font-size:11px;font-weight:700;color:var(--y);margin-bottom:8px;">📅 월별 예상 배당</div>
+          <div style="position:relative;height:140px;"><canvas id="pfDivChart"></canvas></div>
+          <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+            <div style="font-size:10px;color:var(--mu);">연간 배당 예상</div>
+            <div id="pfYearDiv" style="font-size:11px;font-weight:700;color:var(--dn);text-align:right;">-</div>
+            <div style="font-size:10px;color:var(--mu);">시가 배당률</div>
+            <div id="pfDivRate" style="font-size:11px;font-weight:700;color:var(--dn);text-align:right;">-</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd">
+          <span>💼 보유 종목</span>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <span id="pfHoldCount" style="font-size:10px;color:var(--mu);"></span>
+            <select id="pfSortSel" onchange="sortPfHoldings()" style="background:var(--b3);border:1px solid var(--bd);border-radius:5px;padding:3px 6px;font-size:10px;color:var(--tx);outline:none;">
+              <option value="eval">평가금액순</option>
+              <option value="pnl_pct">수익률순</option>
+              <option value="pnl_amt">손익금액순</option>
+              <option value="name">이름순</option>
+            </select>
+          </div>
+        </div>
+        <div id="pfHoldings"><div style="padding:13px;font-size:11px;color:var(--mu);">KIS 연결 후 조회해주세요</div></div>
+      </div>
+    </div>
+  </div>
+
 </div>
 <div class="pg" id="pg-blog">
   <div class="stabs">
@@ -632,6 +695,307 @@ function renderWlChips(){document.getElementById('wlChips').innerHTML=wlList.map
 function rmWl(i){wlList.splice(i,1);localStorage.setItem('wl',JSON.stringify(wlList));renderWlChips();refreshWl();}
 async function refreshWl(){if(wlList.length===0){document.getElementById('wlPrices').innerHTML='<div style="font-size:11px;color:var(--mu);">관심종목을 추가하세요</div>';return;}var rows=[];for(var i=0;i<wlList.length;i++){var w=wlList[i];try{if(w.m==='us'){var r=await fetch('/api/stock?action=market_us');var d=await r.json();var f=d.results&&d.results.find(function(x){return x.symbol===w.c;});if(f){var c=parseFloat((f.change||0).toFixed(2));var cl=c>=0?'up':'dn';var s=c>=0?'+':'';rows.push('<div class="rrow" style="cursor:pointer" onclick="setAiStock(\''+w.n+'\',\''+w.c+'\',\'us\')"><span class="rnm">🇺🇸 '+(w.n||w.c)+'</span><span class="rpr">$'+(f.price?f.price.toFixed(2):'-')+'</span><span class="rch '+cl+'">'+s+c+'%</span></div>');}}else if(kisToken){var r2=await fetch('/api/stock?action=price_kr',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:kisToken,ticker:w.c,mode:trMode})});var d2=await r2.json();if(d2.output&&parseInt(d2.output.stck_prpr||0)>0){var p=parseInt(d2.output.stck_prpr);var c2=parseFloat(d2.output.prdy_ctrt||0);var cl2=c2>=0?'up':'dn';var s2=c2>=0?'+':'';rows.push('<div class="rrow" style="cursor:pointer" onclick="setAiStock(\''+w.n+'\',\''+w.c+'\',\'kr\')"><span class="rnm">🇰🇷 '+(w.n||w.c)+'</span><span class="rpr">'+p.toLocaleString()+'원</span><span class="rch '+cl2+'">'+s2+c2.toFixed(2)+'%</span></div>');}else rows.push('<div class="rrow"><span class="rnm">🇰🇷 '+(w.n||w.c)+'</span><span class="rpr" style="color:var(--mu)">재조회필요</span></div>');}else{rows.push('<div class="rrow"><span class="rnm">'+(w.m==='kr'?'🇰🇷':'🇺🇸')+' '+(w.n||w.c)+'</span><span class="rpr" style="color:var(--mu)">KIS연결필요</span></div>');}}catch(e){rows.push('<div class="rrow"><span class="rnm">'+(w.c)+'</span><span class="rpr" style="color:var(--mu)">오류</span></div>');}}document.getElementById('wlPrices').innerHTML=rows.join('')||'<div style="font-size:11px;color:var(--mu)">없음</div>';}
 function refreshAll(){loadUs();refreshWl();loadNews();if(kisToken){loadRank('vol');loadRank('rise');loadRank('fall');}}
+
+// ══════════════════════════════════════
+// 포트폴리오
+// ══════════════════════════════════════
+var pfAccounts = JSON.parse(localStorage.getItem('pf_accounts') || '[]');
+var pfCur = 'KRW';
+var pfHoldingsData = [];
+var pfDonutInst = null;
+var pfDivInst = null;
+var pfExRateVal = 1;
+
+// 계좌 추가
+function addPfAcct() {
+  var no = prompt('계좌번호 (8자리):', '');
+  if (!no || no.trim().length < 6) return;
+  var prod = prompt('상품코드 (보통 01):', '01');
+  var label = prompt('계좌 별칭 (예: 키움1, 삼성연금):', '계좌'+(pfAccounts.length+1));
+  pfAccounts.push({no: no.trim(), prod: (prod||'01').trim(), label: label||('계좌'+(pfAccounts.length+1)), mode: trMode});
+  localStorage.setItem('pf_accounts', JSON.stringify(pfAccounts));
+  renderPfAcctTabs();
+  loadPortfolio();
+}
+
+function renderPfAcctTabs() {
+  var el = document.getElementById('pfAcctTabs');
+  if (!el) return;
+  el.innerHTML = pfAccounts.map(function(a, i) {
+    return '<button class="stab on" style="padding:4px 12px;border-radius:20px;" onclick="removePfAcct('+i+')" title="길게 눌러 삭제">'+a.label+'</button>';
+  }).join('');
+}
+
+function removePfAcct(i) {
+  if (!confirm(pfAccounts[i].label + ' 계좌를 제거할까요?')) return;
+  pfAccounts.splice(i, 1);
+  localStorage.setItem('pf_accounts', JSON.stringify(pfAccounts));
+  renderPfAcctTabs();
+  loadPortfolio();
+}
+
+function setPfCur(cur) {
+  pfCur = cur;
+  document.getElementById('pfCurKrw').className = cur==='KRW' ? 'stab on' : 'stab';
+  document.getElementById('pfCurUsd').className = cur==='USD' ? 'stab on' : 'stab';
+  renderPfHoldings();
+  updatePfSummary();
+}
+
+// 환율 가져오기
+async function getPfExRate() {
+  try {
+    var r = await fetch('/api/stock?action=market_kr');
+    var d = await r.json();
+    if (d.usdkrw && d.usdkrw.price) {
+      pfExRateVal = d.usdkrw.price;
+      document.getElementById('pfExRate').textContent = '환율: '+pfExRateVal.toLocaleString()+'원';
+    }
+  } catch(e) {}
+}
+
+// 포트폴리오 전체 로드
+async function loadPortfolio() {
+  if (!kisToken) {
+    document.getElementById('pfHoldings').innerHTML = '<div style="padding:13px;font-size:11px;color:var(--mu);">KIS 연결 먼저!</div>';
+    return;
+  }
+
+  // 계좌 없으면 현재 설정된 계좌 사용
+  var accounts = pfAccounts.length > 0 ? pfAccounts : [{no: acctNo, prod: acctProd, label: '내 계좌', mode: trMode}];
+  if (!acctNo && pfAccounts.length === 0) {
+    document.getElementById('pfHoldings').innerHTML = '<div style="padding:13px;font-size:11px;color:var(--mu);">잔고/주문 탭에서 계좌번호를 먼저 저장해주세요</div>';
+    return;
+  }
+
+  await getPfExRate();
+
+  var allHoldings = [];
+  var totalEval = 0, totalBuy = 0;
+
+  for (var i = 0; i < accounts.length; i++) {
+    var acct = accounts[i];
+    try {
+      var r = await fetch('/api/stock?action=balance', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({token: kisToken, mode: acct.mode||trMode, accountNo: acct.no, accountProduct: acct.prod})
+      });
+      var d = await r.json();
+
+      // 보유 종목
+      var items = d.output1 || [];
+      items.forEach(function(x) {
+        var evalAmt = parseInt(x.evlu_amt || 0);
+        var buyAmt = parseInt(x.pchs_amt || 0);
+        var pnlAmt = parseInt(x.evlu_pfls_amt || 0);
+        var pnlPct = parseFloat(x.evlu_pfls_rt || 0);
+        allHoldings.push({
+          code: x.pdno || '',
+          name: x.prdt_name || x.pdno || '-',
+          qty: parseInt(x.hldg_qty || 0),
+          avgPrice: parseInt(x.pchs_avg_pric || 0),
+          curPrice: parseInt(x.prpr || 0),
+          evalAmt: evalAmt,
+          buyAmt: buyAmt,
+          pnlAmt: pnlAmt,
+          pnlPct: pnlPct,
+          acctLabel: acct.label
+        });
+        totalEval += evalAmt;
+        totalBuy += buyAmt;
+      });
+
+      // 요약 (output2)
+      var o2 = d.output2 && d.output2[0];
+      if (o2) {
+        // 예수금은 별도 집계
+      }
+    } catch(e) { console.log('PF load err', acct.label, e); }
+  }
+
+  pfHoldingsData = allHoldings;
+
+  // 요약 업데이트
+  var totalPnl = totalEval - totalBuy;
+  var totalPnlPct = totalBuy > 0 ? (totalPnl / totalBuy * 100) : 0;
+
+  updatePfSummaryValues(totalEval, totalBuy, totalPnl, totalPnlPct);
+  renderPfHoldings();
+  renderPfDonut(allHoldings, totalEval);
+  renderPfDivChart(allHoldings);
+
+  document.getElementById('pfUpdTime').textContent = new Date().toLocaleTimeString('ko-KR');
+}
+
+function fmtAmt(amt) {
+  if (pfCur === 'USD') {
+    return '$' + (amt / pfExRateVal).toFixed(0);
+  }
+  if (Math.abs(amt) >= 100000000) return '₩' + (amt/100000000).toFixed(1) + '억';
+  if (Math.abs(amt) >= 10000) return '₩' + Math.round(amt/10000).toLocaleString() + '만';
+  return '₩' + amt.toLocaleString();
+}
+
+function updatePfSummaryValues(eval_, buy_, pnl_, pnlPct_) {
+  document.getElementById('pfTotEval').textContent = fmtAmt(eval_);
+  document.getElementById('pfTotBuy').textContent = fmtAmt(buy_);
+  var pnlEl = document.getElementById('pfPnl');
+  pnlEl.textContent = (pnl_>=0?'+':'') + fmtAmt(pnl_) + ' (' + (pnlPct_>=0?'+':'') + pnlPct_.toFixed(2) + '%)';
+  pnlEl.className = 'bxv ' + (pnl_>=0?'up':'dn');
+  document.getElementById('pfDayPnl').textContent = '-';
+}
+
+function updatePfSummary() {
+  if (pfHoldingsData.length === 0) return;
+  var totalEval = pfHoldingsData.reduce(function(s,x){return s+x.evalAmt;},0);
+  var totalBuy = pfHoldingsData.reduce(function(s,x){return s+x.buyAmt;},0);
+  var totalPnl = totalEval - totalBuy;
+  var totalPnlPct = totalBuy > 0 ? (totalPnl/totalBuy*100) : 0;
+  updatePfSummaryValues(totalEval, totalBuy, totalPnl, totalPnlPct);
+}
+
+function sortPfHoldings() {
+  var sel = document.getElementById('pfSortSel').value;
+  pfHoldingsData.sort(function(a,b) {
+    if (sel==='eval') return b.evalAmt - a.evalAmt;
+    if (sel==='pnl_pct') return b.pnlPct - a.pnlPct;
+    if (sel==='pnl_amt') return b.pnlAmt - a.pnlAmt;
+    if (sel==='name') return a.name.localeCompare(b.name);
+    return 0;
+  });
+  renderPfHoldings();
+}
+
+function renderPfHoldings() {
+  var el = document.getElementById('pfHoldings');
+  if (!pfHoldingsData.length) { el.innerHTML = '<div style="padding:13px;font-size:11px;color:var(--mu);">보유 종목 없음</div>'; return; }
+  document.getElementById('pfHoldCount').textContent = pfHoldingsData.length + '개 종목';
+  var totalEval = pfHoldingsData.reduce(function(s,x){return s+x.evalAmt;},0);
+  el.innerHTML = pfHoldingsData.map(function(h) {
+    var pct = totalEval > 0 ? (h.evalAmt/totalEval*100).toFixed(1) : '0.0';
+    var cl = h.pnlAmt >= 0 ? 'up' : 'dn';
+    var sg = h.pnlAmt >= 0 ? '+' : '';
+    var safeN = h.name.replace(/'/g, '');
+    var safeC = h.code.replace(/'/g, '');
+    return '<div style="padding:11px 13px;border-bottom:1px solid rgba(36,36,36,.5);cursor:pointer;" onclick="setAiStock(\''+safeN+'\',\''+safeC+'\',\'kr\')">'
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">'
+      + '<span style="font-size:12px;font-weight:700;flex:1;">' + h.name + '</span>'
+      + '<span style="font-size:9px;color:var(--mu);font-family:Space Mono,monospace;">' + h.code + '</span>'
+      + '<span style="font-size:10px;padding:2px 7px;border-radius:100px;background:rgba(66,133,244,.15);color:var(--bl);">' + pct + '%</span>'
+      + '</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;">'
+      + '<div><div style="font-size:9px;color:var(--mu);">평가금액</div><div style="font-size:11px;font-weight:700;">' + fmtAmt(h.evalAmt) + '</div></div>'
+      + '<div><div style="font-size:9px;color:var(--mu);">수량</div><div style="font-size:11px;font-weight:700;">' + h.qty.toLocaleString() + '</div></div>'
+      + '<div><div style="font-size:9px;color:var(--mu);">평균단가</div><div style="font-size:11px;">' + h.avgPrice.toLocaleString() + '</div></div>'
+      + '<div><div style="font-size:9px;color:var(--mu);">손익</div><div style="font-size:11px;font-weight:700;" class="'+cl+'">' + sg + h.pnlPct.toFixed(2) + '%</div></div>'
+      + '</div>'
+      + '<div style="margin-top:5px;background:var(--b3);border-radius:4px;height:4px;overflow:hidden;">'
+      + '<div style="height:100%;width:'+pct+'%;background:'+(h.pnlAmt>=0?'var(--up)':'var(--dn)')+';""></div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+// 도넛 차트
+var CHART_COLORS = ['#4285F4','#EF4444','#22C55E','#FFE135','#A855F7','#F97316','#06B6D4','#EC4899','#84CC16','#14B8A6','#F59E0B','#6366F1','#EF4444','#10B981','#8B5CF6','#F43F5E'];
+
+function renderPfDonut(holdings, totalEval) {
+  var ctx = document.getElementById('pfDonut');
+  if (!ctx) return;
+  if (pfDonutInst) { try{pfDonutInst.destroy();}catch(e){} }
+  if (!holdings.length) return;
+
+  // 비중 상위 10개 + 기타
+  var sorted = holdings.slice().sort(function(a,b){return b.evalAmt-a.evalAmt;});
+  var top10 = sorted.slice(0,10);
+  var others = sorted.slice(10);
+  var othersAmt = others.reduce(function(s,x){return s+x.evalAmt;},0);
+
+  var labels = top10.map(function(h){return h.name;});
+  var data = top10.map(function(h){return h.evalAmt;});
+  var colors = top10.map(function(_,i){return CHART_COLORS[i%CHART_COLORS.length];});
+
+  if (othersAmt > 0) { labels.push('기타'); data.push(othersAmt); colors.push('#555'); }
+
+  pfDonutInst = new Chart(ctx.getContext('2d'), {
+    type: 'doughnut',
+    data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: 1, borderColor: '#111' }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '65%',
+      plugins: { legend: { display: false }, tooltip: { callbacks: {
+        label: function(c) {
+          var pct = totalEval > 0 ? (c.parsed/totalEval*100).toFixed(1) : '0';
+          return c.label + ': ' + pct + '%';
+        }
+      }}}
+    }
+  });
+
+  // 범례
+  document.getElementById('pfDonutCenter').textContent = fmtAmt(totalEval);
+  document.getElementById('pfLegend').innerHTML = labels.map(function(l,i){
+    var pct = totalEval > 0 ? (data[i]/totalEval*100).toFixed(1) : '0';
+    return '<div style="display:flex;align-items:center;gap:5px;font-size:10px;">'
+      + '<div style="width:8px;height:8px;border-radius:50%;background:'+colors[i]+';flex-shrink:0;"></div>'
+      + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+l+'</span>'
+      + '<span style="color:var(--mu);">'+pct+'%</span>'
+      + '</div>';
+  }).join('');
+}
+
+// 월별 배당 차트 (ETF 배당 주기 기반 예상)
+function renderPfDivChart(holdings) {
+  var ctx = document.getElementById('pfDivChart');
+  if (!ctx) return;
+  if (pfDivInst) { try{pfDivInst.destroy();}catch(e){} }
+
+  // 배당 데이터 추정 (보유 종목의 배당률 * 평가금액 / 12)
+  // 실제로는 배당 정보 API 필요하지만 간이 계산
+  var months = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  var divData = new Array(12).fill(0);
+
+  // 분기 배당 ETF 패턴 (1,4,7,10 / 2,5,8,11 / 3,6,9,12)
+  // 월배당 ETF 패턴
+  var totalEval = holdings.reduce(function(s,x){return s+x.evalAmt;},0);
+  // 간이 배당 예상: 평균 배당률 3% 적용
+  var estimatedAnnual = totalEval * 0.03;
+  var monthly = estimatedAnnual / 12;
+  for (var m = 0; m < 12; m++) divData[m] = Math.round(monthly);
+
+  var now = new Date().getMonth(); // 현재 월 (0-based)
+  var barColors = divData.map(function(_,i){
+    return i === now ? '#FFE135' : 'rgba(66,133,244,0.7)';
+  });
+
+  pfDivInst = new Chart(ctx.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: months,
+      datasets: [{ data: divData, backgroundColor: barColors, borderRadius: 3 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: {
+        label: function(c) { return '₩' + c.parsed.y.toLocaleString(); }
+      }}},
+      scales: {
+        x: { ticks: { font: {size:8}, color:'#555' }, grid: { display:false } },
+        y: { ticks: { font:{size:8}, color:'#555', callback: function(v) {
+          return v>=10000 ? Math.round(v/10000)+'만' : v.toLocaleString();
+        }}, grid: { color:'rgba(255,255,255,0.03)' }}
+      }
+    }
+  });
+
+  // 배당 요약
+  document.getElementById('pfYearDiv').textContent = fmtAmt(Math.round(estimatedAnnual));
+  var totEval = holdings.reduce(function(s,x){return s+x.evalAmt;},0);
+  var divRate = totEval > 0 ? (estimatedAnnual / totEval * 100).toFixed(2) : '0';
+  document.getElementById('pfDivRate').textContent = divRate + '%';
+}
+
+// 포트폴리오 탭 진입 시 자동 로드
+var _pfLoaded = false;
 function setAiStock(name,code,mkt){document.getElementById('aiIn').value=name+' ('+code+')';document.getElementById('aiMkt').value=mkt;curTicker=code;curMkt=mkt;document.querySelectorAll('#pg-stock .spage').forEach(function(s){s.classList.remove('on');});document.querySelectorAll('#pg-stock .stab').forEach(function(t){t.classList.remove('on');});document.getElementById('sp-analysis').classList.add('on');document.querySelectorAll('#pg-stock .stab')[1].classList.add('on');doSearch();}
 async function doSearch(){var raw=document.getElementById('aiIn').value.trim();var mkt=document.getElementById('aiMkt').value;if(!raw)return;var code=null,name=raw;var bm=raw.match(/\(([^)]+)\)/);if(bm){code=bm[1];name=raw.replace(/\s*\([^)]+\)/,'').trim();}if(!code){var db=mkt==='kr'?KR:US;var f=db.find(function(s){return s.n.toLowerCase().indexOf(raw.toLowerCase())>=0||s.c.toLowerCase()===raw.toLowerCase();});if(f){code=f.c;name=f.n;}else code=raw.trim();}curTicker=code;curMkt=mkt;document.getElementById('chartTitle').textContent='📊 '+name+' ('+code+') 차트';document.getElementById('pbox').style.display='grid';await fetchPrice(code,mkt,name);loadChart(curPeriod);}
 async function fetchPrice(code,mkt,name){try{if(mkt==='us'){var r=await fetch('/api/stock?action=market_us');var d=await r.json();var f=d.results&&d.results.find(function(x){return x.symbol===code.toUpperCase();});if(f){var chg=f.change||0;var cl=chg>=0?'up':'dn';document.getElementById('pCur').textContent='$'+(f.price?f.price.toFixed(2):'-');document.getElementById('pChg').textContent=(chg>=0?'+':'')+chg.toFixed(2)+'%';document.getElementById('pChg').className='pval '+cl;document.getElementById('pRate').textContent=(chg>=0?'+':'')+chg.toFixed(2)+'%';document.getElementById('pRate').className='pval '+cl;document.getElementById('pVol').textContent='-';curPrice=f.price||0;}}else{if(kisToken){var r2=await fetch('/api/stock?action=price_kr',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:kisToken,ticker:code,mode:trMode})});var d2=await r2.json();if(d2.output&&parseInt(d2.output.stck_prpr||0)>0){var p=parseInt(d2.output.stck_prpr);var c=parseFloat(d2.output.prdy_ctrt||0);var cl2=c>=0?'up':'dn';document.getElementById('pCur').textContent=p.toLocaleString()+'원';document.getElementById('pChg').textContent=parseInt(d2.output.prdy_vrss||0).toLocaleString()+'원';document.getElementById('pChg').className='pval '+cl2;document.getElementById('pRate').textContent=(c>=0?'+':'')+c.toFixed(2)+'%';document.getElementById('pRate').className='pval '+cl2;document.getElementById('pVol').textContent=parseInt(d2.output.acml_vol||0).toLocaleString();curPrice=p;return;}}var sfxs=['.KS','.KQ'];for(var i=0;i<sfxs.length;i++){var r3=await fetch('/api/stock?action=chart&symbol='+code+sfxs[i]+'&range=2d');var d3=await r3.json();if(d3.closes&&d3.closes.length>0){var p2=Math.round(d3.closes[d3.closes.length-1]);document.getElementById('pCur').textContent=p2.toLocaleString()+'원';document.getElementById('pChg').textContent='(Yahoo)';document.getElementById('pRate').textContent='-';document.getElementById('pVol').textContent='-';curPrice=p2;return;}}}}catch(e){}}
