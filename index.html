@@ -708,11 +708,12 @@ var pfExRateVal = 1;
 
 // 계좌 추가
 function addPfAcct() {
-  var no = prompt('계좌번호 (8자리):', '');
+  var no = prompt('계좌번호 (8자리):', acctNo||'');
   if (!no || no.trim().length < 6) return;
-  var prod = prompt('상품코드 (보통 01):', '01');
-  var label = prompt('계좌 별칭 (예: 키움1, 삼성연금):', '계좌'+(pfAccounts.length+1));
-  pfAccounts.push({no: no.trim(), prod: (prod||'01').trim(), label: label||('계좌'+(pfAccounts.length+1)), mode: trMode});
+  var prod = prompt('상품코드 (보통 01):', acctProd||'01');
+  var label = prompt('계좌 별칭 (예: NH투자증권, 키움1):', '계좌'+(pfAccounts.length+1));
+  var modeInput = prompt('실전/모의 (real 또는 mock):', trMode||'real');
+  pfAccounts.push({no: no.trim(), prod: (prod||'01').trim(), label: label||('계좌'+(pfAccounts.length+1)), mode: modeInput||'real'});
   localStorage.setItem('pf_accounts', JSON.stringify(pfAccounts));
   renderPfAcctTabs();
   loadPortfolio();
@@ -781,10 +782,15 @@ async function loadPortfolio() {
         body: JSON.stringify({token: kisToken, mode: acct.mode||trMode, accountNo: acct.no, accountProduct: acct.prod})
       });
       var d = await r.json();
+      console.log('[PF] '+acct.label+' API 응답:', JSON.stringify(d).slice(0,500));
+      console.log('[PF] output1 길이:', (d.output1||[]).length, 'rt_cd:', d.rt_cd, 'msg:', d.msg1);
 
       // 보유 종목
       var items = d.output1 || [];
+      console.log('[PF] 종목 수:', items.length, items.length>0?'첫종목키:'+Object.keys(items[0]).join(','):'');
       items.forEach(function(x) {
+        var qty = parseInt(x.hldg_qty || 0);
+        if (qty <= 0) return; // 수량 0 종목 제외
         var evalAmt = parseInt(x.evlu_amt || 0);
         var buyAmt = parseInt(x.pchs_amt || 0);
         var pnlAmt = parseInt(x.evlu_pfls_amt || 0);
@@ -792,7 +798,7 @@ async function loadPortfolio() {
         allHoldings.push({
           code: x.pdno || '',
           name: x.prdt_name || x.pdno || '-',
-          qty: parseInt(x.hldg_qty || 0),
+          qty: qty,
           avgPrice: parseInt(x.pchs_avg_pric || 0),
           curPrice: parseInt(x.prpr || 0),
           evalAmt: evalAmt,
