@@ -639,7 +639,47 @@ async function doAnalyze(){if(!gKey){alert('Gemini API 키 먼저 설정!');retu
 function switchPeriod(btn,p){document.querySelectorAll('.aichart-card .pbt').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');curPeriod=p;if(curTicker)loadChart(p);}
 var lastChartInst=null;
 async function loadChart(range){if(!curTicker)return;var symbol=curMkt==='kr'?curTicker+'.KS':curTicker;if(curMkt==='kr'&&kisToken){try{var r=await fetch('/api/stock?action=chart_kr',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:kisToken,ticker:curTicker,period:range,mode:trMode})});var d=await r.json();if(d.closes&&d.closes.length>0){drawChart('stockChart',d.timestamps,d.closes,curTicker);return;}}catch(e){}}try{var r2=await fetch('/api/stock?action=chart&symbol='+symbol+'&range='+range);var d2=await r2.json();if(d2.closes&&d2.closes.length>0){drawChart('stockChart',d2.timestamps,d2.closes,curTicker);return;}if(curMkt==='kr'){var r3=await fetch('/api/stock?action=chart&symbol='+curTicker+'.KQ&range='+range);var d3=await r3.json();if(d3.closes&&d3.closes.length>0){drawChart('stockChart',d3.timestamps,d3.closes,curTicker);return;}}}catch(e){}}
-function drawChart(canvasId,ts,closes,label){var ctx=document.getElementById(canvasId);if(!ctx)return;if(canvasId==='stockChart'&&lastChartInst){try{lastChartInst.destroy();}catch(e){}}var isUp=closes[closes.length-1]>=closes[0];var col=isUp?'rgba(239,68,68,1)':'rgba(34,197,94,1)';var bg=isUp?'rgba(239,68,68,0.08)':'rgba(34,197,94,0.08)';var labels=ts.map(function(t){var dt=new Date(t*1000);return (dt.getMonth()+1)+'/'+(dt.getDate());});var inst=new Chart(ctx.getContext('2d'),{type:'line',data:{labels:labels,datasets:[{label:label,data:closes,borderColor:col,backgroundColor:bg,borderWidth:1.5,pointRadius:0,fill:true,tension:0.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{label:function(c){return c.parsed.y.toLocaleString();}}}},scales:{x:{ticks:{font:{size:8},maxTicksLimit:6,color:'#555'},grid:{color:'rgba(255,255,255,0.03)'}},y:{ticks:{font:{size:8},color:'#555',callback:function(v){return v.toLocaleString();}},grid:{color:'rgba(255,255,255,0.03)'}}}}}});if(canvasId==='stockChart')lastChartInst=inst;}
+function drawChart(canvasId,ts,closes,label){
+  var ctx=document.getElementById(canvasId);
+  if(!ctx)return;
+  if(canvasId==="stockChart"&&lastChartInst){
+    try{lastChartInst.destroy();}catch(e){}
+  }
+  var isUp=closes[closes.length-1]>=closes[0];
+  var lineColor=isUp?"rgba(239,68,68,1)":"rgba(34,197,94,1)";
+  var fillColor=isUp?"rgba(239,68,68,0.08)":"rgba(34,197,94,0.08)";
+  var gridCol="rgba(255,255,255,0.03)";
+  var tickCol="#555";
+  var labels=ts.map(function(t){
+    var dt=new Date(t*1000);
+    return (dt.getMonth()+1)+"/"+(dt.getDate());
+  });
+  var cfg={
+    type:"line",
+    data:{
+      labels:labels,
+      datasets:[{
+        label:label,data:closes,
+        borderColor:lineColor,backgroundColor:fillColor,
+        borderWidth:1.5,pointRadius:0,fill:true,tension:0.3
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{mode:"index",intersect:false,callbacks:{label:function(c){return c.parsed.y.toLocaleString();}}}
+      },
+      scales:{
+        x:{ticks:{font:{size:8},maxTicksLimit:6,color:tickCol},grid:{color:gridCol}},
+        y:{ticks:{font:{size:8},color:tickCol,callback:function(v){return v.toLocaleString();}},grid:{color:gridCol}}
+      }
+    }
+  };
+  var inst=new Chart(ctx.getContext("2d"),cfg);
+  if(canvasId==="stockChart")lastChartInst=inst;
+}
+
 function searchAutoStock(){var raw=document.getElementById('asIn').value.trim();if(!raw)return;hideDrop('asDrop');var all=KR.concat(US);var f=all.find(function(s){return s.n.toLowerCase().indexOf(raw.toLowerCase())>=0||s.c.toLowerCase()===raw.toLowerCase()||s.c.toUpperCase()===raw.toUpperCase();});if(f){var mkt=KR.find(function(x){return x.c===f.c;})?'kr':'us';setAutoStock(f.n,f.c,mkt);}else{var mkt2=/^[A-Za-z]+$/.test(raw)?'us':'kr';setAutoStock(raw,raw.toUpperCase(),mkt2);}}
 var autoChartInst2=null;
 function setAutoStock(name,code,mkt){autoTicker=code;autoMkt=mkt;document.getElementById('autoChartTitle').textContent=name+' ('+code+')';document.getElementById('ordNm').textContent=name;document.getElementById('ordCd').textContent=code;document.getElementById('ordMkt').value=mkt;document.getElementById('autoStockInfo').style.display='block';document.getElementById('autoStockNm').textContent=name;document.getElementById('autoStockCd').textContent=code;loadAutoChart('1mo');refreshAutoPrice();if(window._autoPriceTimer)clearInterval(window._autoPriceTimer);window._autoPriceTimer=setInterval(refreshAutoPrice,30000);}
