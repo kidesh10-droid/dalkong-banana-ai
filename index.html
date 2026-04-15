@@ -874,6 +874,39 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
     </div>
   </div>
 </div>
+
+<!-- 포트폴리오 기기 동기화 모달 -->
+<div id="pfSyncModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:600;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+  <div style="background:var(--b2);border-radius:20px;padding:24px;width:360px;max-width:92vw;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+    <div style="font-size:16px;font-weight:700;color:var(--tx);margin-bottom:6px;">☁️ 기기 동기화</div>
+    <div style="font-size:11px;color:var(--mu);margin-bottom:18px;">4자리 PIN으로 암호화해서 어느 기기에서든 불러올 수 있어요</div>
+    
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div>
+        <label style="font-size:11px;color:var(--mu);margin-bottom:5px;display:block;font-weight:500;">🔑 PIN 번호 (4자리 이상 숫자)</label>
+        <input id="pfSyncPin" type="password" inputmode="numeric" maxlength="8" placeholder="예: 1234" style="width:100%;background:var(--b3);border:1px solid var(--bd);border-radius:10px;padding:10px 12px;font-size:16px;color:var(--tx);outline:none;box-sizing:border-box;text-align:center;letter-spacing:8px;font-family:Space Mono,monospace;"/>
+      </div>
+      <div id="pfSyncCode" style="display:none;">
+        <label style="font-size:11px;color:var(--mu);margin-bottom:5px;display:block;font-weight:500;">📋 공유 코드 (다른 기기에서 붙여넣기)</label>
+        <div style="background:var(--b3);border:1px solid var(--bd);border-radius:10px;padding:10px;font-size:10px;color:var(--tx);font-family:Space Mono,monospace;word-break:break-all;max-height:80px;overflow-y:auto;" id="pfSyncCodeText"></div>
+        <button onclick="copyPfCode()" style="width:100%;margin-top:8px;padding:8px;border-radius:8px;border:none;background:var(--bl);color:#fff;font-size:12px;font-weight:600;cursor:pointer;">📋 클립보드 복사</button>
+      </div>
+      <div id="pfSyncImportArea" style="display:none;">
+        <label style="font-size:11px;color:var(--mu);margin-bottom:5px;display:block;font-weight:500;">📥 불러올 공유 코드 붙여넣기</label>
+        <textarea id="pfSyncImportCode" style="width:100%;background:var(--b3);border:1px solid var(--bd);border-radius:10px;padding:10px;font-size:10px;color:var(--tx);outline:none;resize:none;height:80px;font-family:Space Mono,monospace;box-sizing:border-box;" placeholder="다른 기기에서 복사한 코드를 붙여넣으세요..."></textarea>
+      </div>
+    </div>
+
+    <div id="pfSyncStatus" style="font-size:11px;min-height:16px;margin-top:10px;text-align:center;"></div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px;">
+      <button onclick="pfSyncExport()" style="padding:11px;border-radius:12px;border:none;background:var(--tx);color:#fff;font-size:12px;font-weight:600;cursor:pointer;">📤 현재 기기 내보내기</button>
+      <button onclick="pfSyncImport()" style="padding:11px;border-radius:12px;border:none;background:var(--bl);color:#fff;font-size:12px;font-weight:600;cursor:pointer;">📥 다른 기기에서 가져오기</button>
+    </div>
+    <button onclick="document.getElementById('pfSyncModal').style.display='none'" style="width:100%;margin-top:8px;padding:10px;border-radius:12px;border:1px solid var(--bd);background:transparent;color:var(--mu);font-size:13px;cursor:pointer;">닫기</button>
+  </div>
+</div>
+
 <div class="pf-modal" id="pfModal">
   <div class="pf-modal-box">
     <div style="font-size:16px;font-weight:700;color:var(--tx);margin-bottom:18px;" id="pfModalTitle">종목 추가</div>
@@ -2537,6 +2570,68 @@ function importPfData(){
     alert(data.length+'개 종목을 가져왔어요!');
   }catch(e){alert('가져오기 오류: '+e.message);}
 }
+
+// ═══ 포트폴리오 기기 동기화 ═══
+function openPfSync(){
+  document.getElementById('pfSyncPin').value='';
+  document.getElementById('pfSyncCode').style.display='none';
+  document.getElementById('pfSyncImportArea').style.display='none';
+  document.getElementById('pfSyncStatus').textContent='';
+  document.getElementById('pfSyncModal').style.display='flex';
+  setTimeout(function(){document.getElementById('pfSyncPin').focus();},100);
+}
+async function pfSyncExport(){
+  var pin=document.getElementById('pfSyncPin').value.trim();
+  if(pin.length<4){document.getElementById('pfSyncStatus').textContent='PIN은 4자리 이상이어야 해요!';document.getElementById('pfSyncStatus').style.color='var(--up)';return;}
+  if(!pfHoldingsData.length){document.getElementById('pfSyncStatus').textContent='저장된 종목이 없어요!';document.getElementById('pfSyncStatus').style.color='var(--up)';return;}
+  document.getElementById('pfSyncStatus').textContent='암호화 중...';document.getElementById('pfSyncStatus').style.color='var(--mu)';
+  try{
+    var r=await fetch('/api/pf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'encode',data:pfHoldingsData,pin:pin})});
+    var d=await r.json();
+    if(d.error){document.getElementById('pfSyncStatus').textContent='오류: '+d.error;document.getElementById('pfSyncStatus').style.color='var(--up)';return;}
+    document.getElementById('pfSyncCodeText').textContent=d.shareCode;
+    document.getElementById('pfSyncCode').style.display='block';
+    document.getElementById('pfSyncStatus').textContent='✅ 코드 생성 완료! 복사 후 다른 기기에서 붙여넣으세요.';
+    document.getElementById('pfSyncStatus').style.color='var(--dn)';
+  }catch(e){document.getElementById('pfSyncStatus').textContent='오류: '+e.message;document.getElementById('pfSyncStatus').style.color='var(--up)';}
+}
+async function pfSyncImport(){
+  var pin=document.getElementById('pfSyncPin').value.trim();
+  if(pin.length<4){
+    document.getElementById('pfSyncStatus').textContent='PIN을 먼저 입력해주세요!';
+    document.getElementById('pfSyncStatus').style.color='var(--up)';
+    document.getElementById('pfSyncImportArea').style.display='block';
+    return;
+  }
+  document.getElementById('pfSyncImportArea').style.display='block';
+  var code=document.getElementById('pfSyncImportCode').value.trim();
+  if(!code){document.getElementById('pfSyncStatus').textContent='코드를 붙여넣어 주세요!';document.getElementById('pfSyncStatus').style.color='var(--up)';return;}
+  document.getElementById('pfSyncStatus').textContent='복호화 중...';document.getElementById('pfSyncStatus').style.color='var(--mu)';
+  try{
+    var r=await fetch('/api/pf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'decode',shareCode:code,pin:pin})});
+    var d=await r.json();
+    if(d.error){document.getElementById('pfSyncStatus').textContent='❌ '+d.error;document.getElementById('pfSyncStatus').style.color='var(--up)';return;}
+    if(!d.data||!Array.isArray(d.data)){document.getElementById('pfSyncStatus').textContent='데이터 오류';return;}
+    if(pfHoldingsData.length>0&&!confirm('기존 '+pfHoldingsData.length+'개 종목을 덮어쓸까요?'))return;
+    pfHoldingsData=d.data;
+    localStorage.setItem('pf_holdings',JSON.stringify(pfHoldingsData));
+    renderPfAll();
+    document.getElementById('pfSyncModal').style.display='none';
+    alert('✅ '+d.data.length+'개 종목을 가져왔어요!');
+  }catch(e){document.getElementById('pfSyncStatus').textContent='오류: '+e.message;document.getElementById('pfSyncStatus').style.color='var(--up)';}
+}
+function copyPfCode(){
+  var code=document.getElementById('pfSyncCodeText').textContent;
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(code).then(function(){
+      document.getElementById('pfSyncStatus').textContent='✅ 클립보드에 복사됐어요! 다른 기기에서 [가져오기]를 눌러 붙여넣으세요.';
+      document.getElementById('pfSyncStatus').style.color='var(--dn)';
+    }).catch(function(){alert(code);});
+  }else{alert(code);}
+}
+// 기존 함수 유지 (호환성)
+function exportPfData(){openPfSync();}
+function importPfData(){openPfSync();}
 </script>
 </body>
 </html>
