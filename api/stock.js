@@ -1,4 +1,4 @@
-const fetch = (...args) => import('node-fetch').then(({default: f}) => f(...args));
+// Node 18+ 내장 fetch 사용 (node-fetch 불필요)
 
 const KIS_MOCK = {
   base: 'https://openapivts.koreainvestment.com:29443',
