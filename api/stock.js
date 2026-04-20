@@ -308,6 +308,18 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ error: '결과 없음' });
     }
 
+    // ── 환경변수 설정 확인 (디버그용) ──
+    if (action === 'check_env') {
+      return res.status(200).json({
+        KIS_MOCK_APP_KEY: process.env.KIS_MOCK_APP_KEY ? '✅ 설정됨 ('+process.env.KIS_MOCK_APP_KEY.slice(0,6)+'...)' : '❌ 없음',
+        KIS_MOCK_APP_SECRET: process.env.KIS_MOCK_APP_SECRET ? '✅ 설정됨' : '❌ 없음',
+        KIS_REAL_APP_KEY: process.env.KIS_REAL_APP_KEY ? '✅ 설정됨 ('+process.env.KIS_REAL_APP_KEY.slice(0,6)+'...)' : '❌ 없음',
+        KIS_REAL_APP_SECRET: process.env.KIS_REAL_APP_SECRET ? '✅ 설정됨' : '❌ 없음',
+        NAVER_CLIENT_ID: process.env.NAVER_CLIENT_ID ? '✅ 설정됨' : '❌ 없음',
+        NAVER_CLIENT_SECRET: process.env.NAVER_CLIENT_SECRET ? '✅ 설정됨' : '❌ 없음',
+      });
+    }
+
     return res.status(400).json({ error: 'Unknown action: ' + action });
 
   } catch(err) {
