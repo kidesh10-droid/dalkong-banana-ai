@@ -339,6 +339,7 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
   <div class="stabs">
     <button class="stab on" onclick="switchSp(this,'market')">📊 시황</button>
     <button class="stab" onclick="switchSp(this,'analysis')">🤖 AI분석</button>
+    <button class="stab" onclick="switchSp(this,'quant')">📐 퀀트</button>
     <button class="stab" onclick="switchSp(this,'auto')">⚡ 자동매매</button>
     <button class="stab" onclick="switchSp(this,'balance')">💰 잔고/주문</button>
     <button class="stab" onclick="switchSp(this,'portfolio')">📊 포트폴리오</button>
@@ -553,6 +554,95 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
       </div>
     </div>
   </div>
+  <!-- 퀀트 투자 탭 -->
+  <div class="spage" id="sp-quant">
+    <div style="overflow-y:auto;flex:1;padding:14px;background:var(--dk-bg);display:flex;flex-direction:column;gap:12px;">
+
+      <!-- 상단 설명 -->
+      <div style="background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(139,92,246,.1));border:1px solid rgba(99,102,241,.25);border-radius:14px;padding:14px;">
+        <div style="font-size:13px;font-weight:700;color:#A78BFA;margin-bottom:5px;">📐 퀀트 투자 분석</div>
+        <div style="font-size:11px;color:var(--dk-mu);line-height:1.6;">재무 데이터 기반의 퀀트 전략으로 저평가 우량주를 발굴합니다.<br>PBR·PER·ROE·모멘텀 등 팩터를 조합해 AI가 종목을 스코어링합니다.</div>
+      </div>
+
+      <!-- 전략 선택 -->
+      <div style="background:var(--dk-b2);border-radius:14px;padding:14px;border:1px solid var(--dk-bd);">
+        <div style="font-size:12px;font-weight:700;color:var(--dk-tx);margin-bottom:10px;">⚙️ 퀀트 전략 선택</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <button onclick="selectQuantStrategy(this,'magic')" class="qstrat-btn active" data-strat="magic" style="padding:10px;border-radius:10px;border:2px solid #6366F1;background:rgba(99,102,241,.15);color:#A78BFA;font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
+            <div style="font-size:13px;margin-bottom:2px;">🪄 마법공식</div>
+            <div style="font-size:10px;opacity:.7;">이익수익률 + 투하자본수익률</div>
+          </button>
+          <button onclick="selectQuantStrategy(this,'garp')" class="qstrat-btn" data-strat="garp" style="padding:10px;border-radius:10px;border:1px solid var(--dk-bd);background:var(--dk-b3);color:var(--dk-mu);font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
+            <div style="font-size:13px;margin-bottom:2px;">📈 GARP</div>
+            <div style="font-size:10px;opacity:.7;">합리적 가격의 성장주 (PEG)</div>
+          </button>
+          <button onclick="selectQuantStrategy(this,'momentum')" class="qstrat-btn" data-strat="momentum" style="padding:10px;border-radius:10px;border:1px solid var(--dk-bd);background:var(--dk-b3);color:var(--dk-mu);font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
+            <div style="font-size:13px;margin-bottom:2px;">🚀 모멘텀</div>
+            <div style="font-size:10px;opacity:.7;">12개월 수익률 상위 종목</div>
+          </button>
+          <button onclick="selectQuantStrategy(this,'lowvol')" class="qstrat-btn" data-strat="lowvol" style="padding:10px;border-radius:10px;border:1px solid var(--dk-bd);background:var(--dk-b3);color:var(--dk-mu);font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
+            <div style="font-size:13px;margin-bottom:2px;">🛡️ 저변동성</div>
+            <div style="font-size:10px;opacity:.7;">변동성 낮은 안정주</div>
+          </button>
+          <button onclick="selectQuantStrategy(this,'quality')" class="qstrat-btn" data-strat="quality" style="padding:10px;border-radius:10px;border:1px solid var(--dk-bd);background:var(--dk-b3);color:var(--dk-mu);font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
+            <div style="font-size:13px;margin-bottom:2px;">💎 퀄리티</div>
+            <div style="font-size:10px;opacity:.7;">ROE·부채비율·이익안정성</div>
+          </button>
+          <button onclick="selectQuantStrategy(this,'combined')" class="qstrat-btn" data-strat="combined" style="padding:10px;border-radius:10px;border:1px solid var(--dk-bd);background:var(--dk-b3);color:var(--dk-mu);font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
+            <div style="font-size:13px;margin-bottom:2px;">🎯 멀티팩터</div>
+            <div style="font-size:10px;opacity:.7;">가치+모멘텀+퀄리티 결합</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- 분석 입력 -->
+      <div style="background:var(--dk-b2);border-radius:14px;padding:14px;border:1px solid var(--dk-bd);">
+        <div style="font-size:12px;font-weight:700;color:var(--dk-tx);margin-bottom:10px;">🔍 분석 종목 입력</div>
+        <div style="font-size:11px;color:var(--dk-mu);margin-bottom:8px;">종목 코드 또는 이름으로 직접 입력하거나, 섹터/지수 자동 스크리닝</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+          <input id="quantTicker" class="work-inp" style="flex:1;min-width:120px;background:var(--dk-b3);border-color:var(--dk-bd);color:var(--dk-tx);" placeholder="005930, AAPL, 삼성전자..."/>
+          <select id="quantMarket" style="padding:9px;border-radius:10px;border:1px solid var(--dk-bd);background:var(--dk-b3);color:var(--dk-tx);font-size:12px;">
+            <option value="kr">한국 KOSPI</option>
+            <option value="us">미국 S&P500</option>
+            <option value="kr_kosdaq">한국 KOSDAQ</option>
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;">
+          <button onclick="quantAddFromWl()" style="padding:8px;border-radius:8px;border:1px solid var(--dk-bd);background:var(--dk-b3);color:var(--dk-mu);font-size:10px;cursor:pointer;">📌 관심종목</button>
+          <button onclick="quantAddFromPf()" style="padding:8px;border-radius:8px;border:1px solid var(--dk-bd);background:var(--dk-b3);color:var(--dk-mu);font-size:10px;cursor:pointer;">💼 포트폴리오</button>
+          <button onclick="quantClearList()" style="padding:8px;border-radius:8px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.06);color:var(--up);font-size:10px;cursor:pointer;">🗑️ 초기화</button>
+        </div>
+        <div id="quantTickerList" style="display:flex;flex-wrap:wrap;gap:5px;min-height:28px;margin-bottom:10px;"></div>
+        <button onclick="runQuantAnalysis()" id="quantRunBtn" style="width:100%;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">📐 퀀트 분석 실행</button>
+      </div>
+
+      <!-- 결과 영역 -->
+      <div id="quantResultWrap" style="display:none;">
+        <div style="background:var(--dk-b2);border-radius:14px;padding:14px;border:1px solid var(--dk-bd);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div style="font-size:12px;font-weight:700;color:var(--dk-tx);">🏆 퀀트 스코어링 결과</div>
+            <div id="quantResultBadge" style="font-size:10px;padding:3px 10px;border-radius:100px;background:rgba(99,102,241,.15);color:#A78BFA;"></div>
+          </div>
+          <div id="quantResultCards"></div>
+        </div>
+        <!-- AI 분석 -->
+        <div style="background:var(--dk-b2);border-radius:14px;padding:14px;border:1px solid var(--dk-bd);margin-top:10px;">
+          <div style="font-size:12px;font-weight:700;color:var(--dk-tx);margin-bottom:8px;">🤖 AI 퀀트 인사이트</div>
+          <div id="quantAiInsight" style="font-size:11px;color:var(--dk-tx);line-height:1.8;white-space:pre-wrap;min-height:40px;"></div>
+        </div>
+      </div>
+
+      <!-- 포트폴리오 최적화 -->
+      <div style="background:var(--dk-b2);border-radius:14px;padding:14px;border:1px solid var(--dk-bd);">
+        <div style="font-size:12px;font-weight:700;color:var(--dk-tx);margin-bottom:6px;">⚖️ 포트폴리오 최적화</div>
+        <div style="font-size:11px;color:var(--dk-mu);margin-bottom:10px;">현재 포트폴리오의 퀀트 지표를 AI로 진단하고 리밸런싱 제안을 받아요</div>
+        <button onclick="runPfQuantDiag()" id="pfQuantBtn" style="width:100%;padding:11px;border-radius:12px;border:none;background:rgba(99,102,241,.2);color:#A78BFA;font-size:12px;font-weight:600;cursor:pointer;border:1px solid rgba(99,102,241,.3);">🔬 내 포트폴리오 퀀트 진단</button>
+        <div id="pfQuantResult" style="font-size:11px;color:var(--dk-tx);line-height:1.8;white-space:pre-wrap;margin-top:10px;display:none;background:var(--dk-b3);border-radius:10px;padding:12px;"></div>
+      </div>
+
+    </div>
+  </div>
+
   <div class="spage" id="sp-portfolio">
     <div style="overflow-y:auto;flex:1;padding:14px;display:flex;flex-direction:column;gap:12px;background:var(--bg);">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -1007,6 +1097,7 @@ function switchSp(btn,sp){
   document.getElementById('sp-'+sp).classList.add('on');
   btn.classList.add('on');
   if(sp==='portfolio'){getPfExRate();renderPfAll();}
+  if(sp==='quant'){renderQuantTickerList();}
 }
 function switchBlog(btn,sp){
   document.querySelectorAll('#pg-blog .spage').forEach(function(s){s.classList.remove('on');});
@@ -1081,7 +1172,7 @@ function onImgSel(e){
   rd.readAsDataURL(f);
 }
 function rmImg(){selImg=null;document.getElementById('imgPrev').style.display='none';document.getElementById('imgIn').value='';}
-function detectStock(txt){
+async function detectStock(txt){
   var all=KR.concat(US);var found=null;
   all.forEach(function(s){if(txt.indexOf(s.n)>=0||(s.c.length>=3&&txt.indexOf(s.c)>=0))found=s;});
   return found;
@@ -1184,7 +1275,7 @@ function esc(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g
 
 // ══ KIS ══
 function setMode(v){trMode=v;document.getElementById('modebar').textContent=v==='mock'?'모의투자':'실전투자';}
-function saveAcct(){
+async function saveAcct(){
   acctNo=document.getElementById('acctNo').value.trim().replace(/-/g,'');
   acctProd=document.getElementById('acctProd').value;
   localStorage.setItem('ka',acctNo);localStorage.setItem('kp',acctProd);
@@ -1265,7 +1356,7 @@ function renderWlChips(){
     return '<div class="wlchip">'+(w.m==='kr'?'🇰🇷':'🇺🇸')+' '+(w.n||w.c)+'<button class="wlchip-del" onclick="rmWl('+i+')">✕</button></div>';
   }).join('');
 }
-function rmWl(i){wlList.splice(i,1);localStorage.setItem('wl',JSON.stringify(wlList));renderWlChips();refreshWl();}
+async function rmWl(i){wlList.splice(i,1);localStorage.setItem('wl',JSON.stringify(wlList));renderWlChips();refreshWl();}
 async function refreshWl(){
   if(!wlList.length){document.getElementById('wlPrices').innerHTML='<div style="font-size:11px;color:var(--dk-mu);">관심종목을 추가하세요</div>';return;}
   var rows=[];
@@ -1613,7 +1704,7 @@ function setAutoStock(name,code,mkt){
   if(window._autoPriceTimer)clearInterval(window._autoPriceTimer);
   window._autoPriceTimer=setInterval(refreshAutoPrice,30000);
 }
-function switchAutoPeriod(btn,p){document.querySelectorAll('.minichartarea .pbt').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');if(autoTicker)loadAutoChart(p);}
+async function switchAutoPeriod(btn,p){document.querySelectorAll('.minichartarea .pbt').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');if(autoTicker)loadAutoChart(p);}
 async function loadAutoChart(range){
   if(!autoTicker)return;
   var symbol=autoMkt==='kr'?autoTicker+'.KS':autoTicker;
@@ -1747,7 +1838,7 @@ async function checkAuto(){
   }
   toRm.forEach(function(id){rmCond(id);});
 }
-function alog(msg){
+async function alog(msg){
   var el=document.getElementById('alog');var now=new Date();
   el.innerHTML='['+now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0')+':'+now.getSeconds().toString().padStart(2,'0')+'] '+msg+'<br>'+el.innerHTML;
 }
@@ -1836,7 +1927,7 @@ async function savePfHolding(){
   if(pfEditIdx>=0)pfHoldingsData[pfEditIdx]=item;else pfHoldingsData.push(item);
   localStorage.setItem('pf_holdings',JSON.stringify(pfHoldingsData));closePfModal();renderPfAll();
 }
-function deletePfHolding(idx){if(!confirm(pfHoldingsData[idx].name+' 종목을 삭제할까요?'))return;pfHoldingsData.splice(idx,1);localStorage.setItem('pf_holdings',JSON.stringify(pfHoldingsData));renderPfAll();}
+async function deletePfHolding(idx){if(!confirm(pfHoldingsData[idx].name+' 종목을 삭제할까요?'))return;pfHoldingsData.splice(idx,1);localStorage.setItem('pf_holdings',JSON.stringify(pfHoldingsData));renderPfAll();}
 async function refreshPfPrices(){
   if(!pfHoldingsData.length){alert('종목을 추가해주세요!');return;}
   await getPfExRate();
@@ -2632,6 +2723,286 @@ function copyPfCode(){
 // 기존 함수 유지 (호환성)
 function exportPfData(){openPfSync();}
 function importPfData(){openPfSync();}
+
+// ═══════════════════════════════════════
+// 퀀트 투자 분석 엔진
+// ═══════════════════════════════════════
+var quantStrategy = 'magic';
+var quantTickerArr = [];
+
+var QUANT_STRATEGIES = {
+  magic: {
+    name: '마법공식',
+    desc: '이익수익률(EY) + 투하자본수익률(ROIC) 합산 순위',
+    factors: ['EY(이익수익률)','ROIC(투하자본수익률)'],
+    color: '#6366F1'
+  },
+  garp: {
+    name: 'GARP',
+    desc: '합리적 가격의 성장주: PEG < 1, 이익성장률 > 15%',
+    factors: ['PEG','EPS성장률','PER'],
+    color: '#10B981'
+  },
+  momentum: {
+    name: '모멘텀',
+    desc: '12-1개월 주가 수익률 + 거래량 증가',
+    factors: ['12M수익률','3M수익률','거래량모멘텀'],
+    color: '#F59E0B'
+  },
+  lowvol: {
+    name: '저변동성',
+    desc: '52주 변동성 낮은 안정 종목',
+    factors: ['52주변동성','베타','최대낙폭'],
+    color: '#3B82F6'
+  },
+  quality: {
+    name: '퀄리티',
+    desc: 'ROE 높고 부채비율 낮은 우량주',
+    factors: ['ROE','부채비율','이익안정성'],
+    color: '#8B5CF6'
+  },
+  combined: {
+    name: '멀티팩터',
+    desc: '가치(30%) + 모멘텀(30%) + 퀄리티(40%) 결합',
+    factors: ['가치점수','모멘텀점수','퀄리티점수'],
+    color: '#EC4899'
+  }
+};
+
+function selectQuantStrategy(btn, strat){
+  quantStrategy = strat;
+  document.querySelectorAll('.qstrat-btn').forEach(function(b){
+    var s = QUANT_STRATEGIES[b.dataset.strat];
+    b.style.border = '1px solid var(--dk-bd)';
+    b.style.background = 'var(--dk-b3)';
+    b.style.color = 'var(--dk-mu)';
+  });
+  var col = QUANT_STRATEGIES[strat].color;
+  btn.style.border = '2px solid '+col;
+  btn.style.background = col+'26';
+  btn.style.color = col;
+}
+
+function quantAddTicker(){
+  var val = document.getElementById('quantTicker').value.trim().toUpperCase();
+  if(!val) return;
+  if(quantTickerArr.indexOf(val) === -1){
+    quantTickerArr.push(val);
+    renderQuantTickerList();
+  }
+  document.getElementById('quantTicker').value='';
+}
+
+function quantAddFromWl(){
+  if(!wlList || !wlList.length){alert('관심종목을 먼저 추가해주세요!');return;}
+  wlList.forEach(function(s){
+    if(quantTickerArr.indexOf(s.c) === -1) quantTickerArr.push(s.c);
+  });
+  renderQuantTickerList();
+}
+
+function quantAddFromPf(){
+  if(!pfHoldingsData || !pfHoldingsData.length){alert('포트폴리오 종목을 먼저 추가해주세요!');return;}
+  pfHoldingsData.forEach(function(s){
+    var tc=s.ticker||s.code||s.c;if(tc&&quantTickerArr.indexOf(tc)===-1)quantTickerArr.push(tc);
+  });
+  renderQuantTickerList();
+}
+
+function quantClearList(){
+  quantTickerArr = [];
+  renderQuantTickerList();
+  document.getElementById('quantResultWrap').style.display='none';
+}
+
+function renderQuantTickerList(){
+  var el = document.getElementById('quantTickerList');
+  if(!quantTickerArr.length){el.innerHTML='<span style="font-size:10px;color:var(--dk-mu);">종목을 추가하거나 관심종목/포트폴리오에서 불러오세요</span>';return;}
+  el.innerHTML = quantTickerArr.map(function(t,i){
+    return '<span style="padding:4px 10px;border-radius:100px;background:rgba(99,102,241,.15);color:#A78BFA;font-size:11px;display:inline-flex;align-items:center;gap:4px;">'
+      +t+'<button onclick="quantRemoveTicker('+i+')" style="border:none;background:none;color:#A78BFA;cursor:pointer;padding:0;font-size:12px;line-height:1;">×</button></span>';
+  }).join('');
+}
+
+function quantRemoveTicker(i){
+  quantTickerArr.splice(i,1);
+  renderQuantTickerList();
+}
+
+// ── 핵심: 퀀트 분석 실행 ──
+async function runQuantAnalysis(){
+  // 키 입력 있으면 먼저 추가
+  var inp = document.getElementById('quantTicker').value.trim();
+  if(inp){quantTickerArr.push(inp.toUpperCase());document.getElementById('quantTicker').value='';renderQuantTickerList();}
+
+  if(!quantTickerArr.length){alert('분석할 종목을 추가해주세요!');return;}
+  if(!gKey){alert('AI채팅 탭에서 Gemini API 키를 먼저 저장해주세요!');return;}
+
+  var btn = document.getElementById('quantRunBtn');
+  btn.disabled=true; btn.textContent='분석 중...';
+  document.getElementById('quantResultWrap').style.display='none';
+
+  var strat = QUANT_STRATEGIES[quantStrategy];
+  var market = document.getElementById('quantMarket').value;
+
+  try{
+    // ── Step 1: 실시간 주가 데이터 수집 ──
+    var priceData = {};
+    var pricePromises = quantTickerArr.map(async function(ticker){
+      try{
+        var sym = market==='kr' ? ticker+'.KS' : market==='kr_kosdaq' ? ticker+'.KQ' : ticker;
+        var r = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(sym)+'?interval=1d&range=1y');
+        var d = await r.json();
+        var q = d.chart && d.chart.result && d.chart.result[0];
+        if(q){
+          var closes = q.indicators.quote[0].close.filter(Boolean);
+          var last = closes[closes.length-1];
+          var start = closes[0];
+          var yr12 = ((last-start)/start*100).toFixed(1);
+          var m3 = closes.length>63 ? ((last-closes[closes.length-63])/closes[closes.length-63]*100).toFixed(1) : 'N/A';
+          // 52주 변동성 계산
+          var returns = [];
+          for(var i=1;i<closes.length;i++) returns.push((closes[i]-closes[i-1])/closes[i-1]);
+          var avg = returns.reduce(function(s,v){return s+v;},0)/returns.length;
+          var vol = Math.sqrt(returns.reduce(function(s,v){return s+Math.pow(v-avg,2);},0)/returns.length)*Math.sqrt(252)*100;
+
+          var meta = q.meta||{};
+          priceData[ticker] = {
+            price: last,
+            price_start: start,
+            return_12m: parseFloat(yr12),
+            return_3m: parseFloat(m3),
+            volatility_52w: vol.toFixed(1),
+            pe: meta.regularMarketPreviousClose ? null : null,
+            currency: meta.currency || (market==='us'?'USD':'KRW'),
+            name: meta.shortName || meta.longName || ticker
+          };
+        }
+      }catch(e){ priceData[ticker] = {error: e.message}; }
+    });
+    await Promise.all(pricePromises);
+
+    // ── Step 2: AI 퀀트 스코어링 ──
+    var NL = String.fromCharCode(10);
+    var dataLines = quantTickerArr.map(function(t){
+      var d = priceData[t];
+      if(!d || d.error) return t+': 데이터 없음';
+      return t+'('+( d.name||t)+'): 현재가='+Math.round(d.price).toLocaleString()+' 12M수익률='+d.return_12m+'% 3M수익률='+d.return_3m+'% 변동성='+d.volatility_52w+'%';
+    });
+
+    var prompt = '퀀트 투자 분석 요청'+NL
+      +'전략: '+strat.name+' - '+strat.desc+NL
+      +'팩터: '+strat.factors.join(', ')+NL
+      +'시장: '+(market==='us'?'미국 S&P500':'한국 '+market.toUpperCase())+NL
+      +''+NL
+      +'[종목 데이터]'+NL
+      +dataLines.join(NL)+NL+NL
+      +'위 데이터와 각 종목의 실제 재무 정보(PER, PBR, ROE, 부채비율, EPS성장률 등)를 고려하여 '+strat.name+' 전략으로 분석해주세요.'+NL+NL
+      +'다음 형식으로 응답해주세요:'+NL+NL
+      +'## 퀀트 스코어링 결과 ('+strat.name+' 전략)'+NL+NL
+      +'각 종목을 100점 만점으로 스코어링하고 아래 형식으로:'+NL
+      +'[종목코드] 종목명 | 퀀트점수: XX점 | 등급: A/B/C/D'+NL
+      +'→ 주요 강점/약점 1줄 설명'+NL+NL
+      +'## 전략별 상위 추천 종목 (TOP 3)'+NL
+      +'1위: 이유'+NL
+      +'2위: 이유'+NL
+      +'3위: 이유'+NL+NL
+      +'## AI 투자 인사이트'+NL
+      +'현재 시장 상황과 전략에 맞는 투자 관점 2~3줄'+NL+NL
+      +'## ⚠️ 리스크 요인'+NL
+      +'해당 전략의 주요 리스크 2줄'+NL+NL
+      +'(주의: 이는 투자 참고용이며 실제 투자 결정은 본인 판단으로 하시기 바랍니다)';
+
+    var resp = await fetch('/api/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        apiKey:gKey, model:gMod,
+        messages:[{role:'user',parts:[{text:prompt}]}],
+        systemPrompt:'당신은 CFA 자격증을 보유한 퀀트 투자 전문가입니다. 재무 데이터와 퀀트 팩터를 분석하여 객관적인 투자 인사이트를 제공합니다. 항상 투자 위험을 함께 언급합니다.'
+      })
+    });
+    var rd = await resp.json();
+    if(rd.error){alert('AI 오류: '+rd.error.message||rd.error);return;}
+
+    var reply = rd.reply||'';
+
+    // ── Step 3: 결과 렌더링 ──
+    document.getElementById('quantResultWrap').style.display='block';
+    document.getElementById('quantResultBadge').textContent = strat.name+' · '+quantTickerArr.length+'종목 분석';
+
+    // 종목 카드 생성
+    var cards = '';
+    quantTickerArr.forEach(function(ticker){
+      var d = priceData[ticker]||{};
+      var chgColor = (d.return_12m||0)>=0?'var(--dn)':'var(--up)';
+      var volColor = parseFloat(d.volatility_52w||0)>30?'var(--up)':parseFloat(d.volatility_52w||0)<15?'var(--dn)':'var(--y)';
+      cards += '<div style="background:var(--dk-b3);border-radius:12px;padding:12px;margin-bottom:8px;border:1px solid var(--dk-bd);">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
+        +'<div>'
+        +'<div style="font-size:12px;font-weight:700;color:var(--dk-tx);">'+ticker+'</div>'
+        +'<div style="font-size:10px;color:var(--dk-mu);">'+(d.name||'')+'</div>'
+        +'</div>'
+        +'<div style="text-align:right;">'
+        +(d.price?'<div style="font-size:13px;font-weight:700;font-family:Space Mono,monospace;color:var(--dk-tx);">'+Math.round(d.price).toLocaleString()+(d.currency==='USD'?' $':' ₩')+'</div>':'')
+        +'</div>'
+        +'</div>'
+        +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">'
+        +'<div style="background:var(--dk-b2);border-radius:8px;padding:6px;text-align:center;"><div style="font-size:9px;color:var(--dk-mu);">12M 수익률</div><div style="font-size:12px;font-weight:700;color:'+chgColor+';">'+(d.return_12m!=null?d.return_12m+'%':'N/A')+'</div></div>'
+        +'<div style="background:var(--dk-b2);border-radius:8px;padding:6px;text-align:center;"><div style="font-size:9px;color:var(--dk-mu);">3M 수익률</div><div style="font-size:12px;font-weight:700;color:'+(parseFloat(d.return_3m||0)>=0?'var(--dn)':'var(--up)')+';">'+(d.return_3m!=null?d.return_3m+'%':'N/A')+'</div></div>'
+        +'<div style="background:var(--dk-b2);border-radius:8px;padding:6px;text-align:center;"><div style="font-size:9px;color:var(--dk-mu);">52W 변동성</div><div style="font-size:12px;font-weight:700;color:'+volColor+';">'+(d.volatility_52w||'N/A')+'%</div></div>'
+        +'</div>'
+        +'</div>';
+    });
+    document.getElementById('quantResultCards').innerHTML = cards;
+    document.getElementById('quantAiInsight').textContent = reply;
+
+  }catch(e){
+    alert('분석 오류: '+e.message);
+  }finally{
+    btn.disabled=false; btn.textContent='📐 퀀트 분석 실행';
+  }
+}
+
+// ── 포트폴리오 퀀트 진단 ──
+async function runPfQuantDiag(){
+  if(!pfHoldingsData||!pfHoldingsData.length){alert('포트폴리오에 종목을 먼저 추가해주세요!');return;}
+  if(!gKey){alert('Gemini API 키가 필요해요!');return;}
+  var btn=document.getElementById('pfQuantBtn');
+  btn.disabled=true;btn.textContent='진단 중...';
+  var resEl=document.getElementById('pfQuantResult');
+  resEl.style.display='block';resEl.textContent='포트폴리오 퀀트 지표 분석 중...';
+  try{
+    var NL=String.fromCharCode(10);
+    var holdings=pfHoldingsData.map(function(h){
+      return (h.ticker||h.code||h.c)+'('+h.name+'): '+(h.qty||0)+'주 × '+(h.avgCost||0).toLocaleString()+'원 = '+(((h.qty||0)*(h.avgCost||0))||0).toLocaleString()+'원';
+    }).join(NL);
+    var totalVal=pfHoldingsData.reduce(function(s,h){return s+((h.qty||0)*(h.currentPrice||h.avgCost||0));},0);
+    var arr=[
+      '포트폴리오 퀀트 진단 요청',
+      '총 평가금액: '+totalVal.toLocaleString()+'원',
+      '보유 종목 ('+pfHoldingsData.length+'개):',
+      holdings,'',
+      '다음을 분석해주세요:',
+      '1. 현재 포트폴리오의 퀀트 팩터 분석 (가치/모멘텀/퀄리티 관점)',
+      '2. 섹터 집중도 및 분산 현황',
+      '3. 멀티팩터 기준 상대적 강점/약점 종목',
+      '4. 리밸런싱 제안 (교체/비중 조정)',
+      '5. 전체 포트폴리오 퀀트 종합 등급 (S/A/B/C)',
+      '',
+      '실제 재무 데이터를 최대한 반영하여 구체적으로 분석해주세요.'
+    ];
+    var r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:gKey,model:gMod,messages:[{role:'user',parts:[{text:arr.join(NL)}]}],systemPrompt:'퀀트 포트폴리오 매니저. 객관적이고 실용적인 분석.'})});
+    var d=await r.json();
+    resEl.textContent=d.reply||'분석 실패';
+  }catch(e){resEl.textContent='오류: '+e.message;}
+  finally{btn.disabled=false;btn.textContent='🔬 내 포트폴리오 퀀트 진단';}
+}
+
+// 퀀트 탭 입력창 엔터키
+document.addEventListener('keydown',function(e){
+  if(e.key==='Enter'&&document.activeElement.id==='quantTicker') quantAddTicker();
+});
 </script>
 </body>
 </html>
