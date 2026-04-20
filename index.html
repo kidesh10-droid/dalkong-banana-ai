@@ -340,6 +340,7 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
       <select class="msel" id="tMode" onchange="setMode(this.value)"><option value="mock">🟡 모의</option><option value="real">🔴 실전</option></select>
       <button class="kbtn" id="kbtn" onclick="initKIS()">KIS연결</button>
       <span id="kstat" class="stxt">미연결</span>
+      <button onclick="checkEnv()" style="padding:3px 8px;border-radius:6px;border:1px solid var(--bd);background:var(--b3);color:var(--mu);font-size:9px;cursor:pointer;" title="Vercel 환경변수 확인">🔧 진단</button>
     </div>
   </div>
   <div class="spage on" id="sp-market">
@@ -1390,21 +1391,51 @@ async function saveAcct(){
   setTimeout(function(){document.getElementById('acctSaved').style.display='none';},2000);
 }
 async function initKIS(){
-  document.getElementById('kbtn').textContent='연결중...';
+  var kstat=document.getElementById('kstat');
+  var kbtn=document.getElementById('kbtn');
+  kbtn.textContent='연결중...';
+  kstat.textContent='⏳ 요청 중...';
+  kstat.style.color='var(--mu)';
   try{
-    var r=await fetch('/api/stock?action=token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:trMode})});
-    var d=await r.json();
+    var r=await fetch('/api/stock?action=token',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({mode:trMode})
+    });
+    var rawText=await r.text();
+    var d;
+    try{d=JSON.parse(rawText);}catch(e){
+      kstat.textContent='❌ 응답 파싱 오류: '+rawText.slice(0,80);
+      kbtn.textContent='KIS연결'; return;
+    }
+    // 성공
     if(d.access_token){
       kisToken=d.access_token;
-      document.getElementById('kstat').textContent='✅ 연결됨';document.getElementById('kstat').style.color='var(--dn)';
+      kstat.textContent='✅ 연결됨 ('+(trMode==='mock'?'모의':'실전')+')';
+      kstat.style.color='var(--dn)';
       document.getElementById('kisbar').textContent='KIS:'+(trMode==='mock'?'모의':'실전')+' ✅';
-      document.getElementById('kbtn').textContent='재연결';
+      kbtn.textContent='재연결';
       loadRank('vol');loadRank('rise');loadRank('fall');refreshWl();
-    }else{
-      document.getElementById('kstat').textContent='❌ '+(d.msg1||'실패');
-      document.getElementById('kbtn').textContent='KIS연결';
+      return;
     }
-  }catch(e){document.getElementById('kstat').textContent='❌ '+e.message;document.getElementById('kbtn').textContent='KIS연결';}
+    // KIS 자체 에러 (msg1, error_description 등)
+    var errMsg = d.msg1 || d.error_description || d.error || d.message || JSON.stringify(d);
+    kstat.textContent='❌ '+errMsg;
+    kstat.style.color='var(--up)';
+    kbtn.textContent='KIS연결';
+    // 에러 상세 알림
+    if(d.error==='KIS API 키가 설정되지 않았습니다. Vercel 환경변수를 확인해주세요.'){
+      alert('KIS API 키가 Vercel에 설정되지 않았어요!\n\nVercel 대시보드 → Settings → Environment Variables 에서\nKIS_MOCK_APP_KEY / KIS_MOCK_APP_SECRET (모의)\nKIS_REAL_APP_KEY / KIS_REAL_APP_SECRET (실전)\n을 확인해주세요.');
+    } else {
+      console.log('KIS 응답 전체:', JSON.stringify(d));
+      alert('KIS 연결 실패\n\n에러: '+errMsg+'\n\n브라우저 콘솔(F12)에서 상세 응답을 확인해주세요.');
+    }
+  }catch(e){
+    kstat.textContent='❌ 네트워크 오류: '+e.message;
+    kstat.style.color='var(--up)';
+    kbtn.textContent='KIS연결';
+    alert('네트워크 오류: '+e.message);
+  }
 }
 
 // ══ 시황 ══
@@ -3065,6 +3096,18 @@ document.addEventListener('keydown',function(e){
   if(e.key==='Enter'&&document.activeElement&&document.activeElement.id==='quantTicker')quantAddTicker();
 });
 
+
+// ── KIS 환경변수 진단 ──
+async function checkEnv(){
+  try{
+    var r=await fetch('/api/stock?action=check_env');
+    var d=await r.json();
+    var msg='=== Vercel 환경변수 상태 ===\n\n';
+    Object.entries(d).forEach(function(kv){msg+=kv[0]+': '+kv[1]+'\n';});
+    msg+='\n모의투자 = KIS_MOCK_APP_KEY + KIS_MOCK_APP_SECRET\n실전투자 = KIS_REAL_APP_KEY + KIS_REAL_APP_SECRET';
+    alert(msg);
+  }catch(e){alert('진단 오류: '+e.message);}
+}
 </script>
 </body>
 </html>
