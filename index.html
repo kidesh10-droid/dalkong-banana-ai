@@ -331,7 +331,7 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
   <div class="stabs">
     <button class="stab on" onclick="switchSp(this,'market')">📊 시황</button>
     <button class="stab" onclick="switchSp(this,'analysis')">🤖 AI분석</button>
-    <button class="stab" onclick="switchSp(this,'quant')">📐 퀀트</button>
+    <button class="stab" onclick="switchSp(this,'quant')">📈 차트분석</button>
     <button class="stab" onclick="switchSp(this,'auto')">⚡ 자동매매</button>
     <button class="stab" onclick="switchSp(this,'balance')">💰 잔고/주문</button>
     <button class="stab" onclick="switchSp(this,'portfolio')">📊 포트폴리오</button>
@@ -664,96 +664,82 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
   </div>
   <!-- 퀀트 투자 탭 -->
   <div class="spage" id="sp-quant">
-    <div style="overflow-y:auto;flex:1;padding:14px;background:var(--bg);display:flex;flex-direction:column;gap:12px;">
+    <div style="overflow-y:auto;flex:1;padding:12px;background:var(--bg);display:flex;flex-direction:column;gap:10px;">
 
-      <!-- 상단 설명 -->
-      <div style="background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(139,92,246,.1));border:1px solid rgba(99,102,241,.25);border-radius:14px;padding:14px;">
-        <div style="font-size:13px;font-weight:700;color:#A78BFA;margin-bottom:5px;">📐 퀀트 투자 분석</div>
-        <div style="font-size:11px;color:var(--mu);line-height:1.6;">재무 데이터 기반의 퀀트 전략으로 저평가 우량주를 발굴합니다.<br>PBR·PER·ROE·모멘텀 등 팩터를 조합해 AI가 종목을 스코어링합니다.</div>
-      </div>
-
-      <!-- 전략 선택 -->
+      <!-- 종목 입력 -->
       <div style="background:var(--b2);border-radius:14px;padding:14px;border:1px solid var(--bd);">
-        <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:10px;">⚙️ 퀀트 전략 선택</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          <button onclick="selectQuantStrategy(this,'magic')" class="qstrat-btn active" data-strat="magic" style="padding:10px;border-radius:10px;border:2px solid #6366F1;background:rgba(99,102,241,.15);color:#A78BFA;font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
-            <div style="font-size:13px;margin-bottom:2px;">🪄 마법공식</div>
-            <div style="font-size:10px;opacity:.7;">이익수익률 + 투하자본수익률</div>
-          </button>
-          <button onclick="selectQuantStrategy(this,'garp')" class="qstrat-btn" data-strat="garp" style="padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--b3);color:var(--mu);font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
-            <div style="font-size:13px;margin-bottom:2px;">📈 GARP</div>
-            <div style="font-size:10px;opacity:.7;">합리적 가격의 성장주 (PEG)</div>
-          </button>
-          <button onclick="selectQuantStrategy(this,'momentum')" class="qstrat-btn" data-strat="momentum" style="padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--b3);color:var(--mu);font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
-            <div style="font-size:13px;margin-bottom:2px;">🚀 모멘텀</div>
-            <div style="font-size:10px;opacity:.7;">12개월 수익률 상위 종목</div>
-          </button>
-          <button onclick="selectQuantStrategy(this,'lowvol')" class="qstrat-btn" data-strat="lowvol" style="padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--b3);color:var(--mu);font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
-            <div style="font-size:13px;margin-bottom:2px;">🛡️ 저변동성</div>
-            <div style="font-size:10px;opacity:.7;">변동성 낮은 안정주</div>
-          </button>
-          <button onclick="selectQuantStrategy(this,'quality')" class="qstrat-btn" data-strat="quality" style="padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--b3);color:var(--mu);font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
-            <div style="font-size:13px;margin-bottom:2px;">💎 퀄리티</div>
-            <div style="font-size:10px;opacity:.7;">ROE·부채비율·이익안정성</div>
-          </button>
-          <button onclick="selectQuantStrategy(this,'combined')" class="qstrat-btn" data-strat="combined" style="padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--b3);color:var(--mu);font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
-            <div style="font-size:13px;margin-bottom:2px;">🎯 멀티팩터</div>
-            <div style="font-size:10px;opacity:.7;">가치+모멘텀+퀄리티 결합</div>
-          </button>
-        </div>
-      </div>
-
-      <!-- 분석 입력 -->
-      <div style="background:var(--b2);border-radius:14px;padding:14px;border:1px solid var(--bd);">
-        <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:10px;">🔍 분석 종목 입력</div>
-        <div style="font-size:11px;color:var(--mu);margin-bottom:8px;">종목 코드 또는 이름으로 직접 입력하거나, 섹터/지수 자동 스크리닝</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-          <input id="quantTicker" class="work-inp" style="flex:1;min-width:120px;background:var(--b3);border-color:var(--bd);color:var(--tx);" placeholder="005930, AAPL, 삼성전자..."/>
-          <select id="quantMarket" style="padding:9px;border-radius:10px;border:1px solid var(--bd);background:var(--b3);color:var(--tx);font-size:12px;">
-            <option value="kr">한국 KOSPI</option>
-            <option value="us">미국 S&P500</option>
-            <option value="kr_kosdaq">한국 KOSDAQ</option>
+        <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:10px;">📈 기술적 분석 & 단기 매매 시그널</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <input id="taTickerInput" class="work-inp" style="flex:1;min-width:120px;background:var(--b3);border-color:var(--bd);color:var(--tx);font-size:14px;font-weight:600;" placeholder="TQQQ, 005930, NVDA..."/>
+          <select id="taMarketSel" style="padding:9px 12px;border-radius:10px;border:1px solid var(--bd);background:var(--b3);color:var(--tx);font-size:12px;">
+            <option value="us">🇺🇸 미국</option>
+            <option value="kr">🇰🇷 한국 KOSPI</option>
+            <option value="kr_kosdaq">🇰🇷 KOSDAQ</option>
           </select>
+          <select id="taPeriodSel" style="padding:9px 12px;border-radius:10px;border:1px solid var(--bd);background:var(--b3);color:var(--tx);font-size:12px;">
+            <option value="5d">5일 (단타)</option>
+            <option value="1mo" selected>1개월</option>
+            <option value="3mo">3개월</option>
+            <option value="6mo">6개월</option>
+          </select>
+          <button onclick="runTA()" id="taRunBtn" style="padding:9px 18px;border-radius:10px;border:none;background:var(--tx);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">🔍 분석</button>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;">
-          <button onclick="quantAddFromWl()" style="padding:8px;border-radius:8px;border:1px solid var(--bd);background:var(--b3);color:var(--mu);font-size:10px;cursor:pointer;">📌 관심종목</button>
-          <button onclick="quantAddFromPf()" style="padding:8px;border-radius:8px;border:1px solid var(--bd);background:var(--b3);color:var(--mu);font-size:10px;cursor:pointer;">💼 포트폴리오</button>
-          <button onclick="quantClearList()" style="padding:8px;border-radius:8px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.06);color:var(--up);font-size:10px;cursor:pointer;">🗑️ 초기화</button>
+        <!-- 빠른 선택 버튼 -->
+        <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;">
+          <span style="font-size:10px;color:var(--mu);align-self:center;">빠른선택:</span>
+          <button onclick="taQuick('TQQQ','us')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--bd);background:var(--b3);color:var(--tx);font-size:10px;cursor:pointer;">TQQQ</button>
+          <button onclick="taQuick('SOXL','us')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--bd);background:var(--b3);color:var(--tx);font-size:10px;cursor:pointer;">SOXL</button>
+          <button onclick="taQuick('NVDA','us')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--bd);background:var(--b3);color:var(--tx);font-size:10px;cursor:pointer;">NVDA</button>
+          <button onclick="taQuick('TSLA','us')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--bd);background:var(--b3);color:var(--tx);font-size:10px;cursor:pointer;">TSLA</button>
+          <button onclick="taQuick('005930','kr')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--bd);background:var(--b3);color:var(--tx);font-size:10px;cursor:pointer;">삼성전자</button>
+          <button onclick="taQuick('000660','kr')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--bd);background:var(--b3);color:var(--tx);font-size:10px;cursor:pointer;">SK하이닉스</button>
         </div>
-        <div id="quantTickerList" style="display:flex;flex-wrap:wrap;gap:5px;min-height:28px;margin-bottom:10px;"></div>
-        <button onclick="runQuantAnalysis()" id="quantRunBtn" style="width:100%;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">📐 퀀트 분석 실행</button>
       </div>
 
-      <!-- 결과 영역 -->
-      <div id="quantResultWrap" style="display:none;">
+      <!-- 로딩 -->
+      <div id="taLoading" style="display:none;text-align:center;padding:30px;">
+        <div style="font-size:24px;margin-bottom:8px;">📊</div>
+        <div style="font-size:12px;color:var(--mu);">실시간 데이터 수집 및 지표 계산 중...</div>
+      </div>
+
+      <!-- 결과 -->
+      <div id="taResult" style="display:none;flex-direction:column;gap:10px;">
+
+        <!-- 현재가 + 시그널 헤더 -->
+        <div id="taHeader" style="background:var(--b2);border-radius:14px;padding:14px;border:1px solid var(--bd);"></div>
+
+        <!-- 매매 시그널 카드 -->
+        <div id="taSignalCard" style="border-radius:14px;padding:14px;"></div>
+
+        <!-- 기술 지표 그리드 -->
+        <div id="taIndicators" style="background:var(--b2);border-radius:14px;padding:14px;border:1px solid var(--bd);">
+          <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:10px;">📐 기술적 지표</div>
+          <div id="taIndGrid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;"></div>
+        </div>
+
+        <!-- 가격 차트 -->
         <div style="background:var(--b2);border-radius:14px;padding:14px;border:1px solid var(--bd);">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-            <div style="font-size:12px;font-weight:700;color:var(--tx);">🏆 퀀트 스코어링 결과</div>
-            <div id="quantResultBadge" style="font-size:10px;padding:3px 10px;border-radius:100px;background:rgba(99,102,241,.15);color:#A78BFA;"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div style="font-size:12px;font-weight:700;color:var(--tx);" id="taChartTitle">가격 차트</div>
           </div>
-          <div id="quantResultCards"></div>
+          <div style="position:relative;height:200px;"><canvas id="taChart"></canvas></div>
         </div>
-        <!-- AI 분석 -->
-        <div style="background:var(--b2);border-radius:14px;padding:14px;border:1px solid var(--bd);margin-top:10px;">
-          <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:8px;">🤖 AI 퀀트 인사이트</div>
-          <div id="quantAiInsight" style="font-size:11px;color:var(--tx);line-height:1.8;white-space:pre-wrap;min-height:40px;"></div>
+
+        <!-- AI 단기 매매 분석 -->
+        <div style="background:var(--b2);border-radius:14px;padding:14px;border:1px solid var(--bd);">
+          <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:8px;">🤖 AI 단기 매매 분석</div>
+          <div id="taAiResult" style="font-size:11px;color:var(--tx);line-height:1.8;white-space:pre-wrap;"></div>
+          <button onclick="runTA()" style="margin-top:10px;padding:7px 14px;border-radius:8px;border:1px solid var(--bd);background:var(--b3);color:var(--mu);font-size:11px;cursor:pointer;">🔄 새로고침</button>
         </div>
-      </div>
 
-      <!-- 포트폴리오 최적화 -->
-      <div style="background:var(--b2);border-radius:14px;padding:14px;border:1px solid var(--bd);">
-        <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:6px;">⚖️ 포트폴리오 최적화</div>
-        <div style="font-size:11px;color:var(--mu);margin-bottom:10px;">현재 포트폴리오의 퀀트 지표를 AI로 진단하고 리밸런싱 제안을 받아요</div>
-        <button onclick="runPfQuantDiag()" id="pfQuantBtn" style="width:100%;padding:11px;border-radius:12px;border:none;background:rgba(99,102,241,.2);color:#A78BFA;font-size:12px;font-weight:600;cursor:pointer;border:1px solid rgba(99,102,241,.3);">🔬 내 포트폴리오 퀀트 진단</button>
-        <div id="pfQuantResult" style="font-size:11px;color:var(--tx);line-height:1.8;white-space:pre-wrap;margin-top:10px;display:none;background:var(--b3);border-radius:10px;padding:12px;"></div>
       </div>
-
     </div>
   </div>
 
-  <div class="spage" id="sp-portfolio">
-    <div style="overflow-y:auto;flex:1;padding:14px;display:flex;flex-direction:column;gap:12px;background:var(--bg);">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+  <div class="spage" 
+id="sp-portfolio">
+    <div style="flex:1;min-height:0;padding:14px;display:flex;flex-direction:column;gap:12px;background:var(--bg);overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0;">
         <div><div style="font-size:15px;font-weight:700;color:var(--tx);">📊 내 포트폴리오</div><div style="font-size:11px;color:var(--mu);margin-top:1px;">종목명/티커 입력 후 🔍 자동조회</div></div>
         <div style="margin-left:auto;display:flex;gap:7px;align-items:center;flex-wrap:wrap;">
           <button id="pfCurKrw" onclick="setPfCur('KRW')" style="padding:5px 12px;border-radius:20px;border:1px solid var(--bd);background:var(--tx);color:#fff;font-size:11px;cursor:pointer;font-weight:600;">KRW</button>
@@ -765,13 +751,13 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
           <button onclick="openAddHolding()" style="padding:7px 16px;border-radius:10px;border:none;background:var(--tx);color:#fff;font-size:12px;font-weight:600;cursor:pointer;">+ 종목 추가</button>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;flex-shrink:0;">
         <div class="bx"><div class="bxl">총 평가액</div><div class="bxv" id="pfTotEval" style="font-size:20px;">-</div></div>
         <div class="bx"><div class="bxl">총 매입가</div><div class="bxv" id="pfTotBuy" style="font-size:20px;">-</div></div>
         <div class="bx"><div class="bxl">평가 손익</div><div class="bxv" id="pfPnl" style="font-size:20px;">-</div></div>
         <div class="bx"><div class="bxl">수익률</div><div class="bxv" id="pfPnlPct" style="font-size:20px;">-</div></div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;flex-shrink:0;">
         <div class="card" style="padding:14px;">
           <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:10px;">자산 구성</div>
           <div style="position:relative;width:160px;height:160px;margin:0 auto;">
@@ -792,8 +778,8 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
           </div>
         </div>
       </div>
-      <div class="card">
-        <div class="card-hd">
+      <div class="card" style="flex:1;min-height:0;display:flex;flex-direction:column;overflow:visible;">
+        <div class="card-hd" style="flex-shrink:0;">
           <span>💼 보유 종목</span>
           <div style="display:flex;gap:8px;align-items:center;">
             <span id="pfHoldCount" style="font-size:11px;color:var(--mu);"></span>
@@ -802,7 +788,7 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
             </select>
           </div>
         </div>
-        <div id="pfHoldings"><div style="padding:20px;text-align:center;font-size:12px;color:var(--mu);">+ 종목 추가 버튼으로 시작하세요</div></div>
+        <div id="pfHoldings" style="flex:1;min-height:0;overflow-y:auto;"><div style="padding:20px;text-align:center;font-size:12px;color:var(--mu);">+ 종목 추가 버튼으로 시작하세요</div></div>
       </div>
     </div>
   </div>
@@ -1205,7 +1191,7 @@ function switchSp(btn,sp){
   document.getElementById('sp-'+sp).classList.add('on');
   btn.classList.add('on');
   if(sp==='portfolio'){getPfExRate();renderPfAll();}
-  if(sp==='quant'){renderQuantTickerList();}
+  if(sp==='quant'){var ti=document.getElementById('taTickerInput');if(ti&&!ti.value)ti.focus();}
 }
 function switchBlog(btn,sp){
   document.querySelectorAll('#pg-blog .spage').forEach(function(s){s.classList.remove('on');});
@@ -3107,6 +3093,365 @@ async function checkEnv(){
     msg+='\n모의투자 = KIS_MOCK_APP_KEY + KIS_MOCK_APP_SECRET\n실전투자 = KIS_REAL_APP_KEY + KIS_REAL_APP_SECRET';
     alert(msg);
   }catch(e){alert('진단 오류: '+e.message);}
+}
+
+// ═══════════════════════════════════════
+// 기술적 분석 & 단기 매매 시그널 엔진
+// ═══════════════════════════════════════
+
+var taChartInst = null;
+
+function taQuick(ticker, market) {
+  document.getElementById('taTickerInput').value = ticker;
+  document.getElementById('taMarketSel').value = market;
+  runTA();
+}
+
+// ── 기술 지표 계산 함수들 ──
+function calcSMA(data, period) {
+  return data.map(function(_, i) {
+    if (i < period - 1) return null;
+    var sum = 0;
+    for (var j = i - period + 1; j <= i; j++) sum += data[j];
+    return sum / period;
+  });
+}
+
+function calcEMA(data, period) {
+  var k = 2 / (period + 1);
+  var ema = [];
+  for (var i = 0; i < data.length; i++) {
+    if (i === 0) { ema.push(data[0]); continue; }
+    ema.push(data[i] * k + ema[i-1] * (1 - k));
+  }
+  return ema;
+}
+
+function calcRSI(data, period) {
+  period = period || 14;
+  var gains = [], losses = [];
+  for (var i = 1; i < data.length; i++) {
+    var diff = data[i] - data[i-1];
+    gains.push(diff > 0 ? diff : 0);
+    losses.push(diff < 0 ? -diff : 0);
+  }
+  var rsi = [null];
+  var avgGain = gains.slice(0, period).reduce(function(a,b){return a+b;},0)/period;
+  var avgLoss = losses.slice(0, period).reduce(function(a,b){return a+b;},0)/period;
+  rsi.push(avgLoss === 0 ? 100 : 100 - (100/(1+avgGain/avgLoss)));
+  for (var i = period; i < gains.length; i++) {
+    avgGain = (avgGain * (period-1) + gains[i]) / period;
+    avgLoss = (avgLoss * (period-1) + losses[i]) / period;
+    rsi.push(avgLoss === 0 ? 100 : 100 - (100/(1+avgGain/avgLoss)));
+  }
+  return rsi;
+}
+
+function calcMACD(data) {
+  var ema12 = calcEMA(data, 12);
+  var ema26 = calcEMA(data, 26);
+  var macdLine = ema12.map(function(v,i){ return v - ema26[i]; });
+  var signal = calcEMA(macdLine, 9);
+  var histogram = macdLine.map(function(v,i){ return v - signal[i]; });
+  return { macd: macdLine, signal: signal, histogram: histogram };
+}
+
+function calcBollinger(data, period, stdDev) {
+  period = period || 20; stdDev = stdDev || 2;
+  var sma = calcSMA(data, period);
+  return sma.map(function(mid, i) {
+    if (mid === null) return { upper: null, mid: null, lower: null };
+    var slice = data.slice(Math.max(0, i-period+1), i+1);
+    var mean = slice.reduce(function(a,b){return a+b;},0)/slice.length;
+    var std = Math.sqrt(slice.reduce(function(s,v){return s+Math.pow(v-mean,2);},0)/slice.length);
+    return { upper: mid + stdDev*std, mid: mid, lower: mid - stdDev*std };
+  });
+}
+
+function calcStochastic(closes, highs, lows, kPeriod, dPeriod) {
+  kPeriod = kPeriod || 14; dPeriod = dPeriod || 3;
+  var kLine = closes.map(function(c, i) {
+    if (i < kPeriod-1) return null;
+    var h = Math.max.apply(null, highs.slice(i-kPeriod+1, i+1).filter(Boolean));
+    var l = Math.min.apply(null, lows.slice(i-kPeriod+1, i+1).filter(Boolean));
+    return h === l ? 50 : ((c-l)/(h-l))*100;
+  });
+  var dLine = calcSMA(kLine.filter(function(v){return v!==null;}), dPeriod);
+  return { k: kLine, d: dLine };
+}
+
+// ── 메인 분석 실행 ──
+async function runTA() {
+  var ticker = document.getElementById('taTickerInput').value.trim().toUpperCase();
+  if (!ticker) { alert('종목 코드를 입력해주세요! (예: TQQQ, NVDA, 005930)'); return; }
+
+  var market = document.getElementById('taMarketSel').value;
+  var period = document.getElementById('taPeriodSel').value;
+
+  var btn = document.getElementById('taRunBtn');
+  btn.disabled = true; btn.textContent = '분석 중...';
+  document.getElementById('taLoading').style.display = 'block';
+  document.getElementById('taResult').style.display = 'none';
+
+  try {
+    // Yahoo Finance 심볼 변환
+    var sym = market === 'kr' ? ticker + '.KS' : market === 'kr_kosdaq' ? ticker + '.KQ' : ticker;
+
+    // 데이터 가져오기 (range에 따라 interval 조정)
+    var interval = period === '5d' ? '15m' : period === '1mo' ? '1d' : '1d';
+    var url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(sym)
+      + '?interval=' + interval + '&range=' + period;
+
+    var r = await fetch(url);
+    var d = await r.json();
+
+    if (!d.chart || !d.chart.result || !d.chart.result[0]) {
+      // 미국 시장에서 못 찾으면 다시 시도
+      throw new Error(ticker + ' 데이터를 불러올 수 없어요. 종목 코드를 확인해주세요.\n(미국ETF: TQQQ, SOXL / 한국: 005930)');
+    }
+
+    var q = d.chart.result[0];
+    var meta = q.meta || {};
+    var quotes = q.indicators.quote[0];
+    var timestamps = q.timestamp;
+
+    var closes = quotes.close;
+    var opens = quotes.open;
+    var highs = quotes.high;
+    var lows = quotes.low;
+    var volumes = quotes.volume;
+
+    // null 처리
+    closes = closes.map(function(v,i) { return v || (i>0 ? closes[i-1] : 0); });
+    opens = opens.map(function(v,i) { return v || closes[i]; });
+    highs = highs.map(function(v,i) { return v || closes[i]; });
+    lows = lows.map(function(v,i) { return v || closes[i]; });
+
+    var last = closes[closes.length-1];
+    var prev = closes[closes.length-2] || last;
+    var chg = last - prev;
+    var chgPct = ((chg/prev)*100).toFixed(2);
+    var currency = meta.currency || (market==='us'?'USD':'KRW');
+    var name = meta.shortName || meta.longName || ticker;
+
+    // ── 지표 계산 ──
+    var rsiArr = calcRSI(closes, 14);
+    var rsi = rsiArr[rsiArr.length-1] || 50;
+
+    var macdData = calcMACD(closes);
+    var macdLast = macdData.macd[macdData.macd.length-1];
+    var macdSignal = macdData.signal[macdData.signal.length-1];
+    var macdHist = macdData.histogram[macdData.histogram.length-1];
+
+    var boll = calcBollinger(closes, 20, 2);
+    var bollLast = boll[boll.length-1];
+
+    var sma5 = calcSMA(closes, 5);
+    var sma20 = calcSMA(closes, 20);
+    var sma60 = calcSMA(closes, Math.min(60, closes.length));
+    var s5 = sma5[sma5.length-1];
+    var s20 = sma20[sma20.length-1];
+    var s60 = sma60[sma60.length-1];
+
+    var ema12 = calcEMA(closes, 12);
+    var ema26 = calcEMA(closes, 26);
+    var e12 = ema12[ema12.length-1];
+    var e26 = ema26[ema26.length-1];
+
+    var vol20 = volumes.slice(-20).filter(Boolean);
+    var avgVol = vol20.reduce(function(a,b){return a+b;},0)/vol20.length;
+    var lastVol = volumes[volumes.length-1] || 0;
+    var volRatio = avgVol > 0 ? (lastVol/avgVol).toFixed(1) : 1;
+
+    // ── 매매 시그널 판단 ──
+    var bullSignals = 0, bearSignals = 0;
+    var signalDetails = [];
+
+    // RSI
+    if (rsi < 30) { bullSignals += 2; signalDetails.push('RSI ' + rsi.toFixed(0) + ' 과매도 → 반등 가능'); }
+    else if (rsi < 45) { bullSignals += 1; signalDetails.push('RSI ' + rsi.toFixed(0) + ' 저점권'); }
+    else if (rsi > 70) { bearSignals += 2; signalDetails.push('RSI ' + rsi.toFixed(0) + ' 과매수 → 조정 가능'); }
+    else if (rsi > 55) { bearSignals += 1; signalDetails.push('RSI ' + rsi.toFixed(0) + ' 고점권'); }
+    else { signalDetails.push('RSI ' + rsi.toFixed(0) + ' 중립'); }
+
+    // MACD
+    if (macdHist > 0 && macdLast > macdSignal) { bullSignals += 2; signalDetails.push('MACD 골든크로스 ↑'); }
+    else if (macdHist < 0 && macdLast < macdSignal) { bearSignals += 2; signalDetails.push('MACD 데드크로스 ↓'); }
+    else if (macdHist > 0) { bullSignals += 1; signalDetails.push('MACD 양전환 중'); }
+    else { bearSignals += 1; signalDetails.push('MACD 음전환 중'); }
+
+    // 볼린저밴드
+    if (bollLast && bollLast.lower) {
+      var bbPos = bollLast.upper > bollLast.lower ? ((last - bollLast.lower)/(bollLast.upper - bollLast.lower)*100).toFixed(0) : 50;
+      if (last <= bollLast.lower) { bullSignals += 2; signalDetails.push('볼린저 하단 터치 → 반등 구간'); }
+      else if (last >= bollLast.upper) { bearSignals += 2; signalDetails.push('볼린저 상단 돌파 → 과열'); }
+      else { signalDetails.push('볼린저 위치: ' + bbPos + '% (중간)'); }
+    }
+
+    // 이동평균
+    if (s5 && s20 && last > s5 && s5 > s20) { bullSignals += 2; signalDetails.push('5MA > 20MA 정배열 ↑'); }
+    else if (s5 && s20 && last < s5 && s5 < s20) { bearSignals += 2; signalDetails.push('5MA < 20MA 역배열 ↓'); }
+
+    // 거래량
+    if (parseFloat(volRatio) > 2 && chg > 0) { bullSignals += 2; signalDetails.push('거래량 ' + volRatio + '배 급증 + 상승'); }
+    else if (parseFloat(volRatio) > 2 && chg < 0) { bearSignals += 2; signalDetails.push('거래량 ' + volRatio + '배 급증 + 하락'); }
+
+    var total = bullSignals + bearSignals;
+    var bullPct = total > 0 ? Math.round(bullSignals/total*100) : 50;
+
+    var signal, signalColor, signalBg, signalIcon;
+    if (bullPct >= 70) { signal='강력 매수'; signalColor='#fff'; signalBg='linear-gradient(135deg,#16a34a,#15803d)'; signalIcon='🚀'; }
+    else if (bullPct >= 55) { signal='매수'; signalColor='#fff'; signalBg='linear-gradient(135deg,#22c55e,#16a34a)'; signalIcon='📈'; }
+    else if (bullPct >= 45) { signal='관망'; signalColor='#fff'; signalBg='linear-gradient(135deg,#6366F1,#4F46E5)'; signalIcon='👀'; }
+    else if (bullPct >= 30) { signal='매도'; signalColor='#fff'; signalBg='linear-gradient(135deg,#ef4444,#dc2626)'; signalIcon='📉'; }
+    else { signal='강력 매도'; signalColor='#fff'; signalBg='linear-gradient(135deg,#991b1b,#7f1d1d)'; signalIcon='⚠️'; }
+
+    // ── 헤더 렌더링 ──
+    var priceStr = currency === 'USD'
+      ? '$' + last.toFixed(2)
+      : last.toLocaleString() + '원';
+    var chgStr = (chg>=0?'+':'')+chg.toFixed(currency==='USD'?2:0)+' ('+(chgPct>=0?'+':'')+chgPct+'%)';
+    var chgColor = chg >= 0 ? 'var(--dn)' : 'var(--up)';
+
+    document.getElementById('taHeader').innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
+      +'<div>'
+      +'<div style="font-size:11px;color:var(--mu);">'+(market==='us'?'🇺🇸 미국':'🇰🇷 한국')+'</div>'
+      +'<div style="font-size:18px;font-weight:800;color:var(--tx);">'+ticker+'</div>'
+      +'<div style="font-size:11px;color:var(--mu);">'+name+'</div>'
+      +'</div>'
+      +'<div style="text-align:right;">'
+      +'<div style="font-size:22px;font-weight:800;font-family:Space Mono,monospace;color:var(--tx);">'+priceStr+'</div>'
+      +'<div style="font-size:13px;font-weight:600;color:'+chgColor+';">'+chgStr+'</div>'
+      +'<div style="font-size:10px;color:var(--mu);margin-top:2px;">거래량 '+parseFloat(volRatio).toFixed(1)+'배 (평균比)</div>'
+      +'</div></div>';
+
+    // ── 시그널 카드 ──
+    document.getElementById('taSignalCard').style.background = signalBg;
+    document.getElementById('taSignalCard').innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:space-between;">'
+      +'<div>'
+      +'<div style="font-size:11px;color:rgba(255,255,255,.7);margin-bottom:2px;">AI 매매 시그널</div>'
+      +'<div style="font-size:22px;font-weight:800;color:'+signalColor+';">'+signalIcon+' '+signal+'</div>'
+      +'<div style="font-size:10px;color:rgba(255,255,255,.8);margin-top:4px;">'+signalDetails.slice(0,3).join('  •  ')+'</div>'
+      +'</div>'
+      +'<div style="text-align:right;">'
+      +'<div style="font-size:10px;color:rgba(255,255,255,.7);">상승 신호</div>'
+      +'<div style="font-size:32px;font-weight:900;color:'+signalColor+';">'+bullPct+'%</div>'
+      +'<div style="width:80px;height:6px;background:rgba(255,255,255,.2);border-radius:3px;overflow:hidden;">'
+      +'<div style="width:'+bullPct+'%;height:100%;background:rgba(255,255,255,.8);border-radius:3px;"></div>'
+      +'</div>'
+      +'</div>'
+      +'</div>';
+
+    // ── 지표 그리드 ──
+    var fmt = function(v, dec) { return v != null ? parseFloat(v).toFixed(dec||1) : 'N/A'; };
+    var indItems = [
+      { name:'RSI (14)', val: fmt(rsi,1), color: rsi<30?'var(--dn)':rsi>70?'var(--up)':'var(--tx)', sub: rsi<30?'과매도':rsi>70?'과매수':'중립' },
+      { name:'MACD', val: fmt(macdLast,3), color: macdHist>0?'var(--dn)':'var(--up)', sub: 'Signal: '+fmt(macdSignal,3) },
+      { name:'볼린저 상단', val: bollLast&&bollLast.upper?fmt(bollLast.upper,currency==='USD'?2:0):'N/A', color:'var(--up)', sub: '기준: '+fmt(bollLast&&bollLast.mid,currency==='USD'?2:0) },
+      { name:'볼린저 하단', val: bollLast&&bollLast.lower?fmt(bollLast.lower,currency==='USD'?2:0):'N/A', color:'var(--dn)', sub: '현재 위치 확인' },
+      { name:'5일 이평', val: s5?fmt(s5,currency==='USD'?2:0):'N/A', color: last>s5?'var(--dn)':'var(--up)', sub: last>s5?'현재가 ▲':'현재가 ▼' },
+      { name:'20일 이평', val: s20?fmt(s20,currency==='USD'?2:0):'N/A', color: last>s20?'var(--dn)':'var(--up)', sub: last>s20?'현재가 ▲':'현재가 ▼' },
+      { name:'거래량 비율', val: volRatio+'x', color: parseFloat(volRatio)>2?'var(--up)':parseFloat(volRatio)>1.5?'#F59E0B':'var(--mu)', sub: parseFloat(volRatio)>2?'급증!':parseFloat(volRatio)>1.5?'증가':'보통' },
+      { name:'MACD 히스토', val: fmt(macdHist,4), color: macdHist>0?'var(--dn)':'var(--up)', sub: macdHist>0?'강세':'약세' },
+    ];
+    document.getElementById('taIndGrid').innerHTML = indItems.map(function(item) {
+      return '<div style="background:var(--b3);border-radius:10px;padding:10px;border:1px solid var(--bd);">'
+        +'<div style="font-size:9px;color:var(--mu);margin-bottom:3px;">'+item.name+'</div>'
+        +'<div style="font-size:14px;font-weight:700;color:'+item.color+';font-family:Space Mono,monospace;">'+item.val+'</div>'
+        +'<div style="font-size:9px;color:var(--mu);margin-top:2px;">'+item.sub+'</div>'
+        +'</div>';
+    }).join('');
+
+    // ── 차트 그리기 ──
+    document.getElementById('taChartTitle').textContent = ticker + ' 가격 차트 (' + period + ')';
+    var labels = timestamps.map(function(ts) {
+      var d2 = new Date(ts*1000);
+      return period==='5d'
+        ? (d2.getMonth()+1)+'/'+d2.getDate()+' '+d2.getHours()+':'+String(d2.getMinutes()).padStart(2,'0')
+        : (d2.getMonth()+1)+'/'+d2.getDate();
+    });
+
+    if (taChartInst) { try { taChartInst.destroy(); } catch(e) {} }
+    var ctx = document.getElementById('taChart').getContext('2d');
+    var bollUpper = boll.map(function(b2){return b2.upper;});
+    var bollLower2 = boll.map(function(b2){return b2.lower;});
+
+    taChartInst = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          { label: '가격', data: closes, borderColor: '#6366F1', backgroundColor: 'rgba(99,102,241,0.05)', borderWidth: 2, pointRadius: 0, tension: 0.3, fill: true, yAxisID: 'y' },
+          { label: '볼린저 상단', data: bollUpper, borderColor: 'rgba(239,68,68,0.4)', borderWidth: 1, pointRadius: 0, borderDash: [4,4], fill: false, yAxisID: 'y' },
+          { label: '볼린저 하단', data: bollLower2, borderColor: 'rgba(34,197,94,0.4)', borderWidth: 1, pointRadius: 0, borderDash: [4,4], fill: false, yAxisID: 'y' },
+          { label: '20MA', data: sma20, borderColor: '#F59E0B', borderWidth: 1.5, pointRadius: 0, fill: false, yAxisID: 'y' },
+          { label: '5MA', data: sma5, borderColor: '#3B82F6', borderWidth: 1.5, pointRadius: 0, fill: false, yAxisID: 'y' },
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: true, labels: { font: { size: 9 }, color: 'var(--mu)', boxWidth: 12, padding: 8 } },
+          tooltip: { callbacks: {
+            label: function(c) {
+              if (c.parsed.y == null) return null;
+              return c.dataset.label + ': ' + (currency==='USD' ? '$'+c.parsed.y.toFixed(2) : c.parsed.y.toLocaleString()+'원');
+            }
+          }}
+        },
+        scales: {
+          x: { ticks: { font:{size:9}, color:'var(--mu)', maxTicksLimit: 8 }, grid: { color:'rgba(0,0,0,0.04)' } },
+          y: { ticks: { font:{size:9}, color:'var(--mu)', callback: function(v){ return currency==='USD'?'$'+v.toFixed(1):v.toLocaleString(); } }, grid: { color:'rgba(0,0,0,0.04)' } }
+        }
+      }
+    });
+
+    // ── AI 단기 매매 분석 ──
+    document.getElementById('taAiResult').textContent = 'AI 분석 요청 중...';
+    document.getElementById('taResult').style.display = 'flex';
+    document.getElementById('taLoading').style.display = 'none';
+
+    if (gKey) {
+      var NL = String.fromCharCode(10);
+      var aiPrompt = '['+ticker+'] 단기 매매 분석'+NL
+        +'현재가: '+priceStr+' ('+chgStr+')'+NL
+        +'RSI: '+fmt(rsi,1)+' | MACD히스토: '+fmt(macdHist,4)+NL
+        +'5MA: '+fmt(s5,2)+' | 20MA: '+fmt(s20,2)+' | 60MA: '+fmt(s60,2)+NL
+        +'볼린저: 상='+fmt(bollLast&&bollLast.upper,2)+' 중='+fmt(bollLast&&bollLast.mid,2)+' 하='+fmt(bollLast&&bollLast.lower,2)+NL
+        +'거래량비율: '+volRatio+'배'+NL
+        +'신호목록: '+signalDetails.join(', ')+NL+NL
+        +'다음을 분석해줘 (이모지 사용, 300자 이내):'+NL
+        +'1. 현재 포지션 판단 (매수/매도/관망 + 이유)'+NL
+        +'2. 단기 지지선/저항선'+NL
+        +'3. 진입 시 목표가 & 손절가'+NL
+        +'4. 주의사항 1줄';
+
+      try {
+        var resp = await fetch('/api/chat', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ apiKey:gKey, model:gMod, messages:[{role:'user',parts:[{text:aiPrompt}]}], systemPrompt:'주식 단기 트레이더. 핵심만 간결하게.' })
+        });
+        var rd = await resp.json();
+        document.getElementById('taAiResult').textContent = rd.reply || (rd.error&&rd.error.message) || '분석 실패';
+      } catch(e) {
+        document.getElementById('taAiResult').textContent = '오류: '+e.message;
+      }
+    } else {
+      document.getElementById('taAiResult').textContent = 'AI채팅 탭에서 Gemini API 키를 저장하면 AI 분석이 활성화돼요!';
+    }
+
+  } catch(e) {
+    document.getElementById('taLoading').style.display = 'none';
+    document.getElementById('taResult').style.display = 'flex';
+    document.getElementById('taHeader').innerHTML = '<div style="color:var(--up);font-size:12px;padding:8px;">❌ '+e.message+'</div>';
+    document.getElementById('taSignalCard').innerHTML = '';
+    document.getElementById('taIndGrid').innerHTML = '';
+    document.getElementById('taAiResult').textContent = '';
+  } finally {
+    btn.disabled = false; btn.textContent = '🔍 분석';
+  }
 }
 </script>
 </body>
