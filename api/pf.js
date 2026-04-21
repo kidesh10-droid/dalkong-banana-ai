@@ -1,65 +1,105 @@
-// 포트폴리오 클라우드 동기화 API
-// 비밀번호로 암호화된 데이터를 파일시스템에 저장 (Vercel KV 없이도 동작)
-// Vercel은 /tmp 디렉토리만 쓰기 가능 → 재배포 시 초기화됨
-// → Gemini API를 통해 Google Drive/외부 저장 없이 URL 공유 방식 사용
+// 포트폴리오 기기 동기화 API
+// gzip 압축 + base64url → 짧은 공유 코드 생성
+const zlib = require('zlib');
+const { promisify } = require('util');
+const gzip = promisify(zlib.gzip);
+const gunzip = promisify(zlib.gunzip);
 
-const crypto = require('crypto');
-
-function encrypt(text, pass) {
-  const key = crypto.scryptSync(pass, 'salt_dalkong', 32);
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
-  const encrypted = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
-  return iv.toString('hex') + ':' + encrypted.toString('hex');
-}
-
-function decrypt(text, pass) {
-  const [ivHex, encHex] = text.split(':');
-  const key = crypto.scryptSync(pass, 'salt_dalkong', 32);
-  const iv = Buffer.from(ivHex, 'hex');
-  const enc = Buffer.from(encHex, 'hex');
-  const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-  return Buffer.concat([decipher.update(enc), decipher.final()]).toString('utf8');
-}
-
-// 간단한 인메모리 스토리지 (Vercel 서버리스는 인스턴스 재시작 가능)
-// → URL 파라미터 방식으로 데이터 자체를 주고받음 (서버 저장 없음)
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const { action } = req.method === 'GET' ? req.query : (req.body || {});
+  // body 파싱
+  let body = {};
+  if (req.body && typeof req.body === 'object') body = req.body;
+  else if (req.body && typeof req.body === 'string') {
+    try { body = JSON.parse(req.body); } catch(e) {}
+  } else {
+    try {
+      const chunks = [];
+      for await (const chunk of req) chunks.push(chunk);
+      const raw = Buffer.concat(chunks).toString();
+      if (raw) body = JSON.parse(raw);
+    } catch(e) {}
+  }
+
+  const { action } = body;
 
   try {
-    // 포트폴리오 암호화 내보내기
+    // ── 내보내기: 데이터 → 짧은 공유 코드 ──
     if (action === 'encode') {
-      const { data, pin } = req.body;
-      if (!data || !pin) return res.status(400).json({ error: 'data and pin required' });
-      if (pin.length < 4) return res.status(400).json({ error: 'PIN must be 4+ digits' });
-      const json = JSON.stringify(data);
-      const encrypted = encrypt(json, pin);
-      // 공유 코드: base64 URL safe
-      const shareCode = Buffer.from(encrypted).toString('base64url');
-      return res.status(200).json({ shareCode, length: shareCode.length });
+      const { data } = body;
+      if (!data || !Array.isArray(data)) {
+        return res.status(400).json({ error: 'data 배열이 필요합니다.' });
+      }
+
+      // 최소 필드만 추출 (코드 길이 최소화)
+      const minimal = data.map(h => ({
+        n: h.name || h.n || '',
+        c: h.code || h.c || h.ticker || '',
+        q: h.qty || h.q || 0,
+        p: h.avgPrice || h.p || 0,
+        m: h.market || h.m || 'KR',
+        d: h.divRate || h.d || 0,
+        a: h.acctLabel || h.a || '',
+        cp: h.curPrice || h.cp || 0,
+      }));
+
+      const json = JSON.stringify(minimal);
+      const compressed = await gzip(Buffer.from(json, 'utf-8'), { level: 9 });
+      // base64url (padding 제거 → 더 짧음)
+      const shareCode = compressed.toString('base64')
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+
+      return res.status(200).json({
+        shareCode,
+        length: shareCode.length,
+        count: data.length
+      });
     }
 
-    // 포트폴리오 복호화 가져오기
+    // ── 가져오기: 공유 코드 → 데이터 복원 ──
     if (action === 'decode') {
-      const { shareCode, pin } = req.body;
-      if (!shareCode || !pin) return res.status(400).json({ error: 'shareCode and pin required' });
+      const { shareCode } = body;
+      if (!shareCode) {
+        return res.status(400).json({ error: 'shareCode가 필요합니다.' });
+      }
+
       try {
-        const encrypted = Buffer.from(shareCode, 'base64url').toString('utf8');
-        const json = decrypt(encrypted, pin);
-        const data = JSON.parse(json);
-        return res.status(200).json({ data });
+        // base64url → base64 복원
+        const b64 = shareCode.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = b64 + '=='.slice(0, (4 - b64.length % 4) % 4);
+        const buf = Buffer.from(padded, 'base64');
+        const decompressed = await gunzip(buf);
+        const minimal = JSON.parse(decompressed.toString('utf-8'));
+
+        // 원래 필드명으로 복원
+        const data = minimal.map(h => ({
+          name: h.n || '',
+          code: h.c || '',
+          ticker: h.c || '',
+          qty: h.q || 0,
+          avgPrice: h.p || 0,
+          curPrice: h.cp || h.p || 0,
+          market: h.m || 'KR',
+          divRate: h.d || 0,
+          acctLabel: h.a || '',
+          evalAmt: (h.q || 0) * (h.cp || h.p || 0),
+          buyAmt: (h.q || 0) * (h.p || 0),
+          pnlAmt: (h.q || 0) * ((h.cp || h.p || 0) - (h.p || 0)),
+          pnlPct: h.p > 0 ? (((h.cp || h.p) - h.p) / h.p * 100) : 0,
+        }));
+
+        return res.status(200).json({ data, count: data.length });
       } catch(e) {
-        return res.status(200).json({ error: 'PIN이 틀렸거나 코드가 잘못됐어요.' });
+        return res.status(200).json({ error: '코드가 올바르지 않습니다. 다시 확인해주세요.' });
       }
     }
 
-    return res.status(400).json({ error: 'Unknown action' });
+    return res.status(400).json({ error: 'Unknown action: ' + action });
+
   } catch(err) {
     return res.status(500).json({ error: err.message });
   }
