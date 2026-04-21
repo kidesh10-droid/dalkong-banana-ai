@@ -332,6 +332,7 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
     <button class="stab on" onclick="switchSp(this,'market')">📊 시황</button>
     <button class="stab" onclick="switchSp(this,'analysis')">🤖 AI분석</button>
     <button class="stab" onclick="switchSp(this,'quant')">📈 차트분석</button>
+    <button class="stab" onclick="switchSp(this,'qinvest')">📐 퀀트투자</button>
     <button class="stab" onclick="switchSp(this,'auto')">⚡ 자동매매</button>
     <button class="stab" onclick="switchSp(this,'balance')">💰 잔고/주문</button>
     <button class="stab" onclick="switchSp(this,'portfolio')">📊 포트폴리오</button>
@@ -434,6 +435,98 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
       </div>
     </div>
   </div>
+  <!-- 퀀트 투자 탭 -->
+  <div class="spage" id="sp-qinvest">
+    <div style="overflow-y:auto;flex:1;padding:14px;background:var(--bg);display:flex;flex-direction:column;gap:12px;">
+
+      <div style="background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.08));border:1px solid rgba(99,102,241,.2);border-radius:14px;padding:14px;">
+        <div style="font-size:13px;font-weight:700;color:#6366F1;margin-bottom:4px;">📐 퀀트 투자 분석</div>
+        <div style="font-size:11px;color:var(--mu);line-height:1.6;">재무 데이터 기반 퀀트 전략으로 저평가 우량주 발굴 · AI 스코어링</div>
+      </div>
+
+      <!-- 전략 선택 -->
+      <div style="background:var(--b2);border-radius:14px;padding:14px;border:1px solid var(--bd);">
+        <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:10px;">⚙️ 퀀트 전략 선택</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <button onclick="selectQuantStrategy(this,'magic')" class="qstrat-btn" data-strat="magic"
+            style="padding:10px;border-radius:10px;border:2px solid #6366F1;background:rgba(99,102,241,.12);color:#6366F1;font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
+            <div style="font-size:13px;margin-bottom:2px;">🪄 마법공식</div>
+            <div style="font-size:10px;opacity:.7;">이익수익률 + ROIC</div>
+          </button>
+          <button onclick="selectQuantStrategy(this,'garp')" class="qstrat-btn" data-strat="garp"
+            style="padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--b3);color:var(--mu);font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
+            <div style="font-size:13px;margin-bottom:2px;">📈 GARP</div>
+            <div style="font-size:10px;opacity:.7;">합리적 가격의 성장주</div>
+          </button>
+          <button onclick="selectQuantStrategy(this,'momentum')" class="qstrat-btn" data-strat="momentum"
+            style="padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--b3);color:var(--mu);font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
+            <div style="font-size:13px;margin-bottom:2px;">🚀 모멘텀</div>
+            <div style="font-size:10px;opacity:.7;">12개월 수익률 상위</div>
+          </button>
+          <button onclick="selectQuantStrategy(this,'lowvol')" class="qstrat-btn" data-strat="lowvol"
+            style="padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--b3);color:var(--mu);font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
+            <div style="font-size:13px;margin-bottom:2px;">🛡️ 저변동성</div>
+            <div style="font-size:10px;opacity:.7;">변동성 낮은 안정주</div>
+          </button>
+          <button onclick="selectQuantStrategy(this,'quality')" class="qstrat-btn" data-strat="quality"
+            style="padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--b3);color:var(--mu);font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
+            <div style="font-size:13px;margin-bottom:2px;">💎 퀄리티</div>
+            <div style="font-size:10px;opacity:.7;">ROE↑ 부채비율↓</div>
+          </button>
+          <button onclick="selectQuantStrategy(this,'combined')" class="qstrat-btn" data-strat="combined"
+            style="padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--b3);color:var(--mu);font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
+            <div style="font-size:13px;margin-bottom:2px;">🎯 멀티팩터</div>
+            <div style="font-size:10px;opacity:.7;">가치+모멘텀+퀄리티</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- 종목 입력 -->
+      <div style="background:var(--b2);border-radius:14px;padding:14px;border:1px solid var(--bd);">
+        <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:8px;">🔍 분석 종목 입력</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+          <input id="quantTicker" class="work-inp" style="flex:1;min-width:120px;" placeholder="005930, TQQQ, NVDA... 입력 후 Enter"/>
+          <select id="quantMarket" style="padding:9px;border-radius:10px;border:1px solid var(--bd);background:var(--b3);color:var(--tx);font-size:12px;">
+            <option value="kr">한국 KOSPI</option>
+            <option value="us">미국</option>
+            <option value="kr_kosdaq">KOSDAQ</option>
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;">
+          <button onclick="quantAddFromWl()" style="padding:8px;border-radius:8px;border:1px solid var(--bd);background:var(--b3);color:var(--mu);font-size:10px;cursor:pointer;">📌 관심종목</button>
+          <button onclick="quantAddFromPf()" style="padding:8px;border-radius:8px;border:1px solid var(--bd);background:var(--b3);color:var(--mu);font-size:10px;cursor:pointer;">💼 포트폴리오</button>
+          <button onclick="quantClearList()" style="padding:8px;border-radius:8px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.06);color:var(--up);font-size:10px;cursor:pointer;">🗑️ 초기화</button>
+        </div>
+        <div id="quantTickerList" style="display:flex;flex-wrap:wrap;gap:5px;min-height:28px;margin-bottom:10px;"></div>
+        <button onclick="runQuantAnalysis()" id="quantRunBtn" style="width:100%;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">📐 퀀트 분석 실행</button>
+      </div>
+
+      <!-- 결과 -->
+      <div id="quantResultWrap" style="display:none;flex-direction:column;gap:10px;">
+        <div style="background:var(--b2);border-radius:14px;padding:14px;border:1px solid var(--bd);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div style="font-size:12px;font-weight:700;color:var(--tx);">🏆 퀀트 스코어링</div>
+            <div id="quantResultBadge" style="font-size:10px;padding:3px 10px;border-radius:100px;background:rgba(99,102,241,.12);color:#6366F1;"></div>
+          </div>
+          <div id="quantResultCards"></div>
+        </div>
+        <div style="background:var(--b2);border-radius:14px;padding:14px;border:1px solid var(--bd);">
+          <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:8px;">🤖 AI 퀀트 인사이트</div>
+          <div id="quantAiInsight" style="font-size:11px;color:var(--tx);line-height:1.8;white-space:pre-wrap;"></div>
+        </div>
+      </div>
+
+      <!-- 포트폴리오 진단 -->
+      <div style="background:var(--b2);border-radius:14px;padding:14px;border:1px solid var(--bd);">
+        <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:4px;">⚖️ 내 포트폴리오 퀀트 진단</div>
+        <div style="font-size:11px;color:var(--mu);margin-bottom:10px;">보유 종목의 퀀트 팩터 분석 · 리밸런싱 제안</div>
+        <button onclick="runPfQuantDiag()" id="pfQuantBtn" style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(99,102,241,.3);background:rgba(99,102,241,.08);color:#6366F1;font-size:12px;font-weight:600;cursor:pointer;">🔬 포트폴리오 퀀트 진단</button>
+        <div id="pfQuantResult" style="display:none;font-size:11px;color:var(--tx);line-height:1.8;white-space:pre-wrap;margin-top:10px;background:var(--b3);border-radius:10px;padding:12px;"></div>
+      </div>
+
+    </div>
+  </div>
+
   <div class="spage" id="sp-auto">
     <div class="autowrap">
       <div class="auto-left">
@@ -549,6 +642,98 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
   </div>
   <!-- 퀀트 투자 탭 -->
   <div class="spage" 
+  <!-- 퀀트 투자 탭 -->
+  <div class="spage" id="sp-qinvest">
+    <div style="overflow-y:auto;flex:1;padding:14px;background:var(--bg);display:flex;flex-direction:column;gap:12px;">
+
+      <div style="background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.08));border:1px solid rgba(99,102,241,.2);border-radius:14px;padding:14px;">
+        <div style="font-size:13px;font-weight:700;color:#6366F1;margin-bottom:4px;">📐 퀀트 투자 분석</div>
+        <div style="font-size:11px;color:var(--mu);line-height:1.6;">재무 데이터 기반 퀀트 전략으로 저평가 우량주 발굴 · AI 스코어링</div>
+      </div>
+
+      <!-- 전략 선택 -->
+      <div style="background:var(--b2);border-radius:14px;padding:14px;border:1px solid var(--bd);">
+        <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:10px;">⚙️ 퀀트 전략 선택</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <button onclick="selectQuantStrategy(this,'magic')" class="qstrat-btn" data-strat="magic"
+            style="padding:10px;border-radius:10px;border:2px solid #6366F1;background:rgba(99,102,241,.12);color:#6366F1;font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
+            <div style="font-size:13px;margin-bottom:2px;">🪄 마법공식</div>
+            <div style="font-size:10px;opacity:.7;">이익수익률 + ROIC</div>
+          </button>
+          <button onclick="selectQuantStrategy(this,'garp')" class="qstrat-btn" data-strat="garp"
+            style="padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--b3);color:var(--mu);font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
+            <div style="font-size:13px;margin-bottom:2px;">📈 GARP</div>
+            <div style="font-size:10px;opacity:.7;">합리적 가격의 성장주</div>
+          </button>
+          <button onclick="selectQuantStrategy(this,'momentum')" class="qstrat-btn" data-strat="momentum"
+            style="padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--b3);color:var(--mu);font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
+            <div style="font-size:13px;margin-bottom:2px;">🚀 모멘텀</div>
+            <div style="font-size:10px;opacity:.7;">12개월 수익률 상위</div>
+          </button>
+          <button onclick="selectQuantStrategy(this,'lowvol')" class="qstrat-btn" data-strat="lowvol"
+            style="padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--b3);color:var(--mu);font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
+            <div style="font-size:13px;margin-bottom:2px;">🛡️ 저변동성</div>
+            <div style="font-size:10px;opacity:.7;">변동성 낮은 안정주</div>
+          </button>
+          <button onclick="selectQuantStrategy(this,'quality')" class="qstrat-btn" data-strat="quality"
+            style="padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--b3);color:var(--mu);font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
+            <div style="font-size:13px;margin-bottom:2px;">💎 퀄리티</div>
+            <div style="font-size:10px;opacity:.7;">ROE↑ 부채비율↓</div>
+          </button>
+          <button onclick="selectQuantStrategy(this,'combined')" class="qstrat-btn" data-strat="combined"
+            style="padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--b3);color:var(--mu);font-size:11px;font-weight:600;cursor:pointer;text-align:left;">
+            <div style="font-size:13px;margin-bottom:2px;">🎯 멀티팩터</div>
+            <div style="font-size:10px;opacity:.7;">가치+모멘텀+퀄리티</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- 종목 입력 -->
+      <div style="background:var(--b2);border-radius:14px;padding:14px;border:1px solid var(--bd);">
+        <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:8px;">🔍 분석 종목 입력</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+          <input id="quantTicker" class="work-inp" style="flex:1;min-width:120px;" placeholder="005930, TQQQ, NVDA... 입력 후 Enter"/>
+          <select id="quantMarket" style="padding:9px;border-radius:10px;border:1px solid var(--bd);background:var(--b3);color:var(--tx);font-size:12px;">
+            <option value="kr">한국 KOSPI</option>
+            <option value="us">미국</option>
+            <option value="kr_kosdaq">KOSDAQ</option>
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;">
+          <button onclick="quantAddFromWl()" style="padding:8px;border-radius:8px;border:1px solid var(--bd);background:var(--b3);color:var(--mu);font-size:10px;cursor:pointer;">📌 관심종목</button>
+          <button onclick="quantAddFromPf()" style="padding:8px;border-radius:8px;border:1px solid var(--bd);background:var(--b3);color:var(--mu);font-size:10px;cursor:pointer;">💼 포트폴리오</button>
+          <button onclick="quantClearList()" style="padding:8px;border-radius:8px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.06);color:var(--up);font-size:10px;cursor:pointer;">🗑️ 초기화</button>
+        </div>
+        <div id="quantTickerList" style="display:flex;flex-wrap:wrap;gap:5px;min-height:28px;margin-bottom:10px;"></div>
+        <button onclick="runQuantAnalysis()" id="quantRunBtn" style="width:100%;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">📐 퀀트 분석 실행</button>
+      </div>
+
+      <!-- 결과 -->
+      <div id="quantResultWrap" style="display:none;flex-direction:column;gap:10px;">
+        <div style="background:var(--b2);border-radius:14px;padding:14px;border:1px solid var(--bd);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div style="font-size:12px;font-weight:700;color:var(--tx);">🏆 퀀트 스코어링</div>
+            <div id="quantResultBadge" style="font-size:10px;padding:3px 10px;border-radius:100px;background:rgba(99,102,241,.12);color:#6366F1;"></div>
+          </div>
+          <div id="quantResultCards"></div>
+        </div>
+        <div style="background:var(--b2);border-radius:14px;padding:14px;border:1px solid var(--bd);">
+          <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:8px;">🤖 AI 퀀트 인사이트</div>
+          <div id="quantAiInsight" style="font-size:11px;color:var(--tx);line-height:1.8;white-space:pre-wrap;"></div>
+        </div>
+      </div>
+
+      <!-- 포트폴리오 진단 -->
+      <div style="background:var(--b2);border-radius:14px;padding:14px;border:1px solid var(--bd);">
+        <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:4px;">⚖️ 내 포트폴리오 퀀트 진단</div>
+        <div style="font-size:11px;color:var(--mu);margin-bottom:10px;">보유 종목의 퀀트 팩터 분석 · 리밸런싱 제안</div>
+        <button onclick="runPfQuantDiag()" id="pfQuantBtn" style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(99,102,241,.3);background:rgba(99,102,241,.08);color:#6366F1;font-size:12px;font-weight:600;cursor:pointer;">🔬 포트폴리오 퀀트 진단</button>
+        <div id="pfQuantResult" style="display:none;font-size:11px;color:var(--tx);line-height:1.8;white-space:pre-wrap;margin-top:10px;background:var(--b3);border-radius:10px;padding:12px;"></div>
+      </div>
+
+    </div>
+  </div>
+
   <div class="spage" id="sp-auto">
     <div class="autowrap">
       <div class="auto-left">
@@ -1151,7 +1336,17 @@ var schedRunning=false,schedTimer=null;
 var naverTk=localStorage.getItem('naver_token')||'';
 var naverBId=localStorage.getItem('naver_blog_id')||'';
 var blogMode='topic';
-var pfHoldingsData=JSON.parse(localStorage.getItem('pf_holdings')||'[]');
+var pfHoldingsData=(function(){
+  var d=JSON.parse(localStorage.getItem('pf_holdings')||'[]');
+  // evalAmt 없는 종목은 avgPrice로 임시 계산
+  d.forEach(function(h){
+    if((!h.evalAmt||h.evalAmt===0)&&h.qty&&h.avgPrice){
+      h.evalAmt=Math.round(h.qty*h.avgPrice);
+      h.buyAmt=h.buyAmt||Math.round(h.qty*h.avgPrice);
+    }
+  });
+  return d;
+})();
 var pfCur='KRW',pfExRateVal=1480;
 var pfDonutInst=null,pfDivInst=null,pfEditIdx=-1;
 var veoImgData=null;
@@ -1194,6 +1389,7 @@ function switchSp(btn,sp){
   btn.classList.add('on');
   if(sp==='portfolio'){getPfExRate();renderPfAll();}
   if(sp==='quant'){var ti=document.getElementById('taTickerInput');if(ti&&!ti.value)ti.focus();}
+  if(sp==='qinvest'){renderQuantTickerList();}
 }
 function switchBlog(btn,sp){
   document.querySelectorAll('#pg-blog .spage').forEach(function(s){s.classList.remove('on');});
@@ -2074,8 +2270,23 @@ function sortPfHoldings(){
   localStorage.setItem('pf_holdings',JSON.stringify(pfHoldingsData));renderPfAll();
 }
 function renderPfAll(){
-  var te=pfHoldingsData.reduce(function(s,x){return s+x.evalAmt;},0);
-  var tb=pfHoldingsData.reduce(function(s,x){return s+x.buyAmt;},0);
+  // evalAmt 없으면 curPrice 또는 avgPrice로 자동 계산
+  pfHoldingsData.forEach(function(h){
+    if((!h.evalAmt||h.evalAmt===0)&&h.qty>0){
+      var p=h.curPrice||h.avgPrice||0;
+      h.evalAmt=Math.round(h.qty*p*(h.market==='US'&&pfExRateVal>0?pfExRateVal:1));
+    }
+    if((!h.buyAmt||h.buyAmt===0)&&h.qty>0){
+      var bp=h.avgPrice||0;
+      h.buyAmt=Math.round(h.qty*bp*(h.market==='US'&&pfExRateVal>0?pfExRateVal:1));
+    }
+    if(h.evalAmt&&h.buyAmt&&h.pnlAmt===undefined){
+      h.pnlAmt=h.evalAmt-h.buyAmt;
+      h.pnlPct=h.buyAmt>0?(h.pnlAmt/h.buyAmt*100):0;
+    }
+  });
+  var te=pfHoldingsData.reduce(function(s,x){return s+(x.evalAmt||0);},0);
+  var tb=pfHoldingsData.reduce(function(s,x){return s+(x.buyAmt||0);},0);
   var tp=te-tb;var tpPct=tb>0?(tp/tb*100):0;
   document.getElementById('pfTotEval').textContent=fmtAmt(te);
   document.getElementById('pfTotBuy').textContent=fmtAmt(tb);
@@ -2090,7 +2301,7 @@ function renderPfHoldings(){
   document.getElementById('pfHoldCount').textContent=pfHoldingsData.length+'종목';
   el.innerHTML=pfHoldingsData.map(function(h,idx){
     var pct=te>0?(h.evalAmt/te*100).toFixed(1):'0.0';
-    var pnlCl=h.pnlAmt>=0?'var(--up)':'var(--dn)';
+    var pnlCl=(h.pnlAmt||0)>=0?'var(--up)':'var(--dn)';
     var mktBadge=h.market==='US'?'<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:#EFF6FF;color:#3B82F6;margin-left:5px;font-weight:600;">US</span>':'<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:#FFF7ED;color:#E8A020;margin-left:5px;font-weight:600;">KR</span>';
     var acctBadge=h.acctLabel?'<span style="font-size:9px;color:var(--mu);margin-left:6px;">'+h.acctLabel+'</span>':'';
     return '<div style="padding:14px 16px;border-bottom:1px solid var(--bd);">'
@@ -2101,21 +2312,25 @@ function renderPfHoldings(){
       +'<button onclick="deletePfHolding('+idx+')" style="padding:3px 8px;border-radius:6px;border:1px solid #FECACA;background:#FEF2F2;color:var(--up);font-size:10px;cursor:pointer;">삭제</button>'
       +'</div>'
       +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px;">'
-      +'<div><div style="font-size:9px;color:var(--mu);margin-bottom:2px;">평가금액</div><div style="font-size:12px;font-weight:700;color:var(--tx);">'+fmtAmt(h.evalAmt)+'</div></div>'
+      +'<div><div style="font-size:9px;color:var(--mu);margin-bottom:2px;">평가금액</div><div style="font-size:12px;font-weight:700;color:var(--tx);">'+fmtAmt(h.evalAmt||h.buyAmt||0)+'</div></div>'
       +'<div><div style="font-size:9px;color:var(--mu);margin-bottom:2px;">수량</div><div style="font-size:12px;font-weight:700;color:var(--tx);">'+h.qty+'</div></div>'
       +'<div><div style="font-size:9px;color:var(--mu);margin-bottom:2px;">평균단가</div><div style="font-size:12px;color:var(--tx);">'+(h.market==='US'?'$'+h.avgPrice:h.avgPrice.toLocaleString())+'</div></div>'
-      +'<div><div style="font-size:9px;color:var(--mu);margin-bottom:2px;">손익</div><div style="font-size:12px;font-weight:700;color:'+pnlCl+';">'+(h.pnlAmt>=0?'+':'')+h.pnlPct.toFixed(2)+'%</div></div>'
+      +'<div><div style="font-size:9px;color:var(--mu);margin-bottom:2px;">손익</div><div style="font-size:12px;font-weight:700;color:'+pnlCl+';">'+((h.pnlAmt||0)>=0?'+':'')+(h.pnlPct||0).toFixed(2)+'%</div></div>'
       +'</div>'
-      +'<div style="background:var(--b3);border-radius:4px;height:3px;overflow:hidden;"><div style="height:100%;width:'+pct+'%;background:'+(h.pnlAmt>=0?'var(--up)':'var(--dn)')+'"></div></div>'
+      +'<div style="background:var(--b3);border-radius:4px;height:3px;overflow:hidden;"><div style="height:100%;width:'+pct+'%;background:'+((h.pnlAmt||0)>=0?'var(--up)':'var(--dn)')+'"></div></div>'
       +'</div>';
   }).join('');
 }
 function renderPfDonut(te){
   var ctx=document.getElementById('pfDonut');if(!ctx||!pfHoldingsData.length)return;
   if(pfDonutInst){try{pfDonutInst.destroy();}catch(e){}}
-  var sorted=pfHoldingsData.slice().sort(function(a,b){return b.evalAmt-a.evalAmt;});
-  var top=sorted.slice(0,10);var others=sorted.slice(10).reduce(function(s,x){return s+x.evalAmt;},0);
-  var labels=top.map(function(h){return h.name;});var data=top.map(function(h){return h.evalAmt;});var colors=top.map(function(_,i){return COLORS[i%COLORS.length];});
+  var sorted=pfHoldingsData.slice().sort(function(a,b){
+    var av=(a.evalAmt||a.buyAmt||0),bv=(b.evalAmt||b.buyAmt||0);return bv-av;
+  });
+  var top=sorted.slice(0,10);
+  var others=sorted.slice(10).reduce(function(s,x){return s+(x.evalAmt||x.buyAmt||0);},0);
+  var labels=top.map(function(h){return h.name;});
+  var data=top.map(function(h){return h.evalAmt||h.buyAmt||0;});var colors=top.map(function(_,i){return COLORS[i%COLORS.length];});
   if(others>0){labels.push('기타');data.push(others);colors.push('#CBD5E1');}
   pfDonutInst=new Chart(ctx.getContext('2d'),{type:'doughnut',data:{labels:labels,datasets:[{data:data,backgroundColor:colors,borderWidth:2,borderColor:'#ffffff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){var pct=te>0?(c.parsed/te*100).toFixed(1):'0';return c.label+': '+pct+'%';}}}}}});
   document.getElementById('pfDonutCenter').textContent=fmtAmt(te);
@@ -3223,42 +3438,41 @@ async function runTA() {
     // Yahoo Finance 심볼 변환
     var sym = market === 'kr' ? ticker + '.KS' : market === 'kr_kosdaq' ? ticker + '.KQ' : ticker;
 
-    // 데이터 가져오기 (range에 따라 interval 조정)
-    var interval = period === '5d' ? '15m' : period === '1mo' ? '1d' : '1d';
-    var url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(sym)
-      + '?interval=' + interval + '&range=' + period;
-
-    var r = await fetch(url);
+    // /api/stock 프록시로 데이터 가져오기 (CORS 우회)
+    var r = await fetch('/api/stock?action=ta_chart', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({symbol: ticker, range: period, market: market})
+    });
     var d = await r.json();
 
-    if (!d.chart || !d.chart.result || !d.chart.result[0]) {
-      // 미국 시장에서 못 찾으면 다시 시도
-      throw new Error(ticker + ' 데이터를 불러올 수 없어요. 종목 코드를 확인해주세요.\n(미국ETF: TQQQ, SOXL / 한국: 005930)');
+    if (d.error) {
+      throw new Error(d.error + '\n종목 코드 예시: 미국ETF=TQQQ/SOXL, 한국=005930/000660');
     }
 
-    var q = d.chart.result[0];
-    var meta = q.meta || {};
-    var quotes = q.indicators.quote[0];
-    var timestamps = q.timestamp;
+    var meta = d.meta || {};
+    var timestamps = d.timestamps;
+    var closes  = d.close;
+    var opens   = d.open;
+    var highs   = d.high;
+    var lows    = d.low;
+    var volumes = d.volume;
 
-    var closes = quotes.close;
-    var opens = quotes.open;
-    var highs = quotes.high;
-    var lows = quotes.low;
-    var volumes = quotes.volume;
+    // null 처리는 위에서 완료
 
-    // null 처리
-    closes = closes.map(function(v,i) { return v || (i>0 ? closes[i-1] : 0); });
-    opens = opens.map(function(v,i) { return v || closes[i]; });
-    highs = highs.map(function(v,i) { return v || closes[i]; });
-    lows = lows.map(function(v,i) { return v || closes[i]; });
+    // null 제거
+    closes  = (closes||[]).map(function(v,i){return v!=null?v:(i>0?closes[i-1]:0);});
+    opens   = (opens||[]).map(function(v,i){return v!=null?v:closes[i];});
+    highs   = (highs||[]).map(function(v,i){return v!=null?v:closes[i];});
+    lows    = (lows||[]).map(function(v,i){return v!=null?v:closes[i];});
+    volumes = (volumes||[]).map(function(v){return v||0;});
 
     var last = closes[closes.length-1];
     var prev = closes[closes.length-2] || last;
     var chg = last - prev;
     var chgPct = ((chg/prev)*100).toFixed(2);
     var currency = meta.currency || (market==='us'?'USD':'KRW');
-    var name = meta.shortName || meta.longName || ticker;
+    var name = meta.shortName || ticker;
 
     // ── 지표 계산 ──
     var rsiArr = calcRSI(closes, 14);
