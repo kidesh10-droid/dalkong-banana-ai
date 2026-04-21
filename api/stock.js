@@ -320,6 +320,46 @@ module.exports = async function handler(req, res) {
       });
     }
 
+    // ── 차트분석용 OHLCV 전체 데이터 ──
+    if (action === 'ta_chart') {
+      const { symbol, range, market } = body;
+      // 심볼 변환
+      let sym = symbol;
+      if (market === 'kr') sym = symbol + '.KS';
+      else if (market === 'kr_kosdaq') sym = symbol + '.KQ';
+
+      const rangeMap = { '5d':'15m', '1mo':'1d', '3mo':'1d', '6mo':'1d', '1y':'1d' };
+      const interval = rangeMap[range] || '1d';
+
+      try {
+        const r = await fetch(
+          `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=${interval}&range=${range || '1mo'}`
+        );
+        const d = await r.json();
+        const q = d.chart?.result?.[0];
+        if (!q) return res.status(200).json({ error: `${symbol} 데이터를 찾을 수 없어요.` });
+
+        const quotes = q.indicators.quote[0];
+        const meta = q.meta || {};
+        return res.status(200).json({
+          timestamps: q.timestamp,
+          close:  quotes.close,
+          open:   quotes.open,
+          high:   quotes.high,
+          low:    quotes.low,
+          volume: quotes.volume,
+          meta: {
+            currency:  meta.currency,
+            shortName: meta.shortName || meta.longName || symbol,
+            regularMarketPrice: meta.regularMarketPrice,
+            previousClose: meta.chartPreviousClose || meta.previousClose,
+          }
+        });
+      } catch(e) {
+        return res.status(200).json({ error: e.message });
+      }
+    }
+
     return res.status(400).json({ error: 'Unknown action: ' + action });
 
   } catch(err) {
