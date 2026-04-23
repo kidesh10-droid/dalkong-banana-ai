@@ -349,11 +349,14 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
     <!-- AI 시황 분석 버튼 -->
     <div style="display:flex;align-items:center;gap:8px;padding:6px 14px;border-bottom:1px solid var(--bd);background:var(--b2);flex-shrink:0;flex-wrap:wrap;">
       <button onclick="getMktBrief()" id="mktBriefBtn" style="padding:7px 16px;border-radius:10px;border:none;background:linear-gradient(135deg,#FFE135,#E8A020);color:#000;font-size:12px;font-weight:700;cursor:pointer;">📊 오늘 시황 분석</button>
+      <button onclick="getStockRec()" id="stockRecBtn" style="padding:7px 16px;border-radius:10px;border:none;background:linear-gradient(135deg,#EF4444,#DC2626);color:#fff;font-size:12px;font-weight:700;cursor:pointer;">🎯 단타 추천</button>
+      <div id="autoRecBadge" style="display:none;font-size:9px;padding:2px 8px;border-radius:100px;background:rgba(239,68,68,.12);color:#EF4444;border:1px solid rgba(239,68,68,.3);">🎯 자동 추천 ON</div>
       <span id="mktBriefTime" style="font-size:10px;color:var(--mu);"></span>
       <div id="mktBriefStatus" style="font-size:10px;color:var(--mu);"></div>
       <div id="autoMktBadge" style="display:none;font-size:9px;padding:2px 8px;border-radius:100px;background:rgba(45,138,78,.15);color:var(--dn);border:1px solid rgba(45,138,78,.3);">⏰ 자동 시황 ON</div>
       <div style="display:flex;gap:6px;margin-left:auto;align-items:center;">
         <button onclick="toggleAutoMkt()" id="autoMktBtn" style="padding:5px 10px;border-radius:8px;border:1px solid rgba(255,225,53,.3);background:rgba(255,225,53,.08);color:#FFE135;font-size:10px;cursor:pointer;">⏰ 자동 시황 설정</button>
+        <button onclick="toggleAutoRec()" id="autoRecBtn" style="padding:5px 10px;border-radius:8px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#EF4444;font-size:10px;cursor:pointer;">🎯 자동 추천 설정</button>
         <button onclick="requestMktNotifPermission()" style="padding:5px 10px;border-radius:8px;border:1px solid rgba(45,138,78,.3);background:rgba(45,138,78,.08);color:var(--dn);font-size:10px;cursor:pointer;">🔔 알림 허용</button>
       </div>
     </div>
@@ -496,6 +499,20 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
             <div style="font-size:12px;font-weight:700;color:var(--tx);" id="taChartTitle">가격 차트</div>
           </div>
           <div style="position:relative;height:200px;"><canvas id="taChart"></canvas></div>
+        </div>
+
+        <!-- 매물대 차트 -->
+        <div style="background:var(--b2);border-radius:14px;padding:14px;border:1px solid var(--bd);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div style="font-size:12px;font-weight:700;color:var(--tx);">📦 매물대 분석</div>
+            <div id="taPriceTag" style="font-size:11px;color:var(--mu);"></div>
+          </div>
+          <!-- 매물대 요약 카드 -->
+          <div id="taMaeVolCards" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px;"></div>
+          <!-- 매물대 차트 -->
+          <div style="position:relative;height:260px;"><canvas id="taMaeVolChart"></canvas></div>
+          <!-- 저항/지지 설명 -->
+          <div id="taMaeVolDesc" style="margin-top:10px;font-size:11px;color:var(--tx);line-height:1.7;"></div>
         </div>
 
         <!-- AI 단기 매매 분석 -->
@@ -1504,6 +1521,7 @@ var autoMktEnabled = localStorage.getItem('auto_mkt') === '1';
 
 // 초기화 시 자동 시황 세팅
 function initAutoMkt(){
+  initAutoRec();
   if(autoMktEnabled){
     document.getElementById('autoMktBadge').style.display='inline-flex';
     document.getElementById('autoMktBtn').textContent='⏰ 자동 시황 ON';
@@ -3446,6 +3464,8 @@ async function runTA() {
     document.getElementById('taAiResult').textContent = 'AI 분석 요청 중...';
     document.getElementById('taResult').style.display = 'flex';
     document.getElementById('taLoading').style.display = 'none';
+    // 매물대 차트 렌더링
+    renderMaeVol(closes, volumes, last, ticker, currency);
 
     if (gKey) {
       var NL = String.fromCharCode(10);
@@ -3460,7 +3480,19 @@ async function runTA() {
         +'1. 현재 포지션 판단 (매수/매도/관망 + 이유)'+NL
         +'2. 단기 지지선/저항선'+NL
         +'3. 진입 시 목표가 & 손절가'+NL
-        +'4. 주의사항 1줄';
+        +'4. 주의사항 1줄'+NL+NL
+        // 매물대 정보 추가
+        +(function(){
+          var mv=calcMaeVol(closes,volumes,28);
+          if(!mv)return '';
+          var sr=findSupportResistance(mv,last);
+          var fmt2=function(p){return currency==='USD'?'$'+p.toFixed(2):Math.round(p).toLocaleString()+'원';};
+          var s='[매물대]'+NL;
+          s+='POC: '+fmt2(sr.poc.priceMid)+' (거래량 '+sr.poc.pct.toFixed(1)+'%)'+NL;
+          if(sr.resistance)s+='저항: '+fmt2(sr.resistance.priceMid)+NL;
+          if(sr.support)s+='지지: '+fmt2(sr.support.priceMid)+NL;
+          return s;
+        })();
 
       try {
         var resp = await fetch('/api/chat', {
@@ -3485,6 +3517,374 @@ async function runTA() {
     document.getElementById('taAiResult').textContent = '';
   } finally {
     btn.disabled = false; btn.textContent = '🔍 분석';
+  }
+}
+
+// ═══════════════════════════════════════
+// 매물대 (Volume Profile) 분석 엔진
+// ═══════════════════════════════════════
+var maeVolChartInst = null;
+
+function calcMaeVol(closes, volumes, numBins) {
+  if (!closes || !volumes || closes.length < 2) return null;
+  numBins = numBins || 30;
+
+  // 유효 데이터만 필터
+  var valid = [];
+  for (var i = 0; i < closes.length; i++) {
+    if (closes[i] > 0 && volumes[i] > 0) valid.push({ p: closes[i], v: volumes[i] });
+  }
+  if (valid.length < 5) return null;
+
+  var minP = Math.min.apply(null, valid.map(function(x){return x.p;}));
+  var maxP = Math.max.apply(null, valid.map(function(x){return x.p;}));
+  var range = maxP - minP;
+  if (range <= 0) return null;
+
+  var binSize = range / numBins;
+  var bins = [];
+  for (var b = 0; b < numBins; b++) {
+    bins.push({
+      priceFrom: minP + b * binSize,
+      priceTo:   minP + (b + 1) * binSize,
+      priceMid:  minP + (b + 0.5) * binSize,
+      volume:    0
+    });
+  }
+
+  // 거래량 배분
+  valid.forEach(function(d) {
+    var idx = Math.min(Math.floor((d.p - minP) / binSize), numBins - 1);
+    bins[idx].volume += d.v;
+  });
+
+  var totalVol = bins.reduce(function(s, b){ return s + b.volume; }, 0);
+  var maxVol   = Math.max.apply(null, bins.map(function(b){ return b.volume; }));
+
+  bins.forEach(function(b) {
+    b.pct  = totalVol > 0 ? (b.volume / totalVol * 100) : 0;
+    b.norm = maxVol  > 0 ? (b.volume / maxVol)          : 0;
+  });
+
+  return { bins: bins, minP: minP, maxP: maxP, binSize: binSize, totalVol: totalVol };
+}
+
+function findSupportResistance(mvData, currentPrice) {
+  if (!mvData) return null;
+  var bins = mvData.bins;
+
+  // POC (Point of Control) - 가장 거래량 많은 구간
+  var poc = bins.reduce(function(a, b){ return b.volume > a.volume ? b : a; }, bins[0]);
+
+  // HVN (High Volume Node) - 거래량 상위 20%
+  var threshold = poc.volume * 0.6;
+  var hvns = bins.filter(function(b){ return b.volume >= threshold; });
+
+  // 현재가 기준 저항/지지
+  var above = hvns.filter(function(b){ return b.priceMid > currentPrice; });
+  var below = hvns.filter(function(b){ return b.priceMid <= currentPrice; });
+
+  // 가장 가까운 저항/지지
+  var resistance = above.length  ? above.reduce(function(a,b){ return Math.abs(a.priceMid-currentPrice) < Math.abs(b.priceMid-currentPrice) ? a : b; }) : null;
+  var support    = below.length  ? below.reduce(function(a,b){ return Math.abs(a.priceMid-currentPrice) < Math.abs(b.priceMid-currentPrice) ? a : b; }) : null;
+
+  // LVN (Low Volume Node) - 거래량 하위 15%
+  var lvnThresh = poc.volume * 0.15;
+  var lvns = bins.filter(function(b){ return b.volume <= lvnThresh && b.volume > 0; });
+
+  return { poc: poc, resistance: resistance, support: support, hvns: hvns, lvns: lvns };
+}
+
+function renderMaeVol(closes, volumes, currentPrice, symbol, currency) {
+  var mv = calcMaeVol(closes, volumes, 28);
+  if (!mv) {
+    document.getElementById('taMaeVolDesc').textContent = '매물대 데이터가 부족합니다.';
+    return;
+  }
+  var sr = findSupportResistance(mv, currentPrice);
+  var fmt = function(p){ return currency==='USD' ? '$'+p.toFixed(2) : Math.round(p).toLocaleString()+'원'; };
+  var fmtV = function(v){ return v>=1e8?(v/1e8).toFixed(1)+'억':(v>=1e4?(v/1e4).toFixed(0)+'만':v.toLocaleString()); };
+
+  // 요약 카드
+  var cards = [
+    { label: 'POC (최대 매물)', val: fmt(sr.poc.priceMid), sub: '전체 거래량의 '+sr.poc.pct.toFixed(1)+'%', color: '#F59E0B' },
+    { label: '저항선', val: sr.resistance ? fmt(sr.resistance.priceMid) : '-',
+      sub: sr.resistance ? '현재가 대비 +'+(((sr.resistance.priceMid-currentPrice)/currentPrice)*100).toFixed(1)+'%' : '부재',
+      color: '#EF4444' },
+    { label: '지지선', val: sr.support ? fmt(sr.support.priceMid) : '-',
+      sub: sr.support ? '현재가 대비 '+(((sr.support.priceMid-currentPrice)/currentPrice)*100).toFixed(1)+'%' : '부재',
+      color: '#10B981' }
+  ];
+  document.getElementById('taMaeVolCards').innerHTML = cards.map(function(c){
+    return '<div style="background:var(--b3);border-radius:10px;padding:10px;border-left:3px solid '+c.color+';">'
+      +'<div style="font-size:9px;color:var(--mu);margin-bottom:3px;">'+c.label+'</div>'
+      +'<div style="font-size:13px;font-weight:700;color:var(--tx);font-family:Space Mono,monospace;">'+c.val+'</div>'
+      +'<div style="font-size:9px;color:var(--mu);margin-top:2px;">'+c.sub+'</div></div>';
+  }).join('');
+
+  document.getElementById('taPriceTag').textContent = symbol+' · 현재가 '+fmt(currentPrice);
+
+  // 매물대 차트 (가로 막대형)
+  if (maeVolChartInst) { try{maeVolChartInst.destroy();}catch(e){} }
+  var ctx = document.getElementById('taMaeVolChart');
+  if (!ctx) return;
+
+  var bins = mv.bins;
+  var labels   = bins.map(function(b){ return fmt(b.priceMid); });
+  var volData  = bins.map(function(b){ return parseFloat(b.pct.toFixed(2)); });
+
+  // 색상: POC=주황, 저항=빨강, 지지=초록, 일반=파랑
+  var colors = bins.map(function(b){
+    if (Math.abs(b.priceMid - sr.poc.priceMid) < mv.binSize) return 'rgba(245,158,11,0.85)';
+    if (sr.resistance && Math.abs(b.priceMid - sr.resistance.priceMid) < mv.binSize) return 'rgba(239,68,68,0.75)';
+    if (sr.support    && Math.abs(b.priceMid - sr.support.priceMid)    < mv.binSize) return 'rgba(16,185,129,0.75)';
+    if (b.priceMid > currentPrice) return 'rgba(239,68,68,0.35)';
+    return 'rgba(59,130,246,0.55)';
+  });
+
+  // 현재가 라인 위치
+  var curBinIdx = Math.min(Math.floor((currentPrice - mv.minP) / mv.binSize), bins.length-1);
+
+  maeVolChartInst = new Chart(ctx.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: '매물대 비중(%)',
+          data: volData,
+          backgroundColor: colors,
+          borderWidth: 0,
+          borderRadius: 2
+        }
+      ]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: function(items){ return '가격: '+items[0].label; },
+            label: function(item){ return '매물: '+item.raw+'%'; }
+          }
+        },
+        annotation: {
+          annotations: {
+            curPrice: {
+              type: 'line',
+              yMin: curBinIdx,
+              yMax: curBinIdx,
+              borderColor: '#FFFFFF',
+              borderWidth: 2,
+              borderDash: [4,3],
+              label: { content: '현재가', enabled: true, position: 'end', font:{size:9}, color:'#fff', backgroundColor:'rgba(0,0,0,.5)' }
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { font:{size:9}, color:'var(--mu)', callback: function(v){return v+'%';} },
+          grid: { color:'rgba(0,0,0,.04)' }
+        },
+        y: {
+          ticks: { font:{size:8}, color:'var(--mu)', maxTicksLimit:14 },
+          grid: { display:false }
+        }
+      }
+    }
+  });
+
+  // 설명 텍스트
+  var NL = String.fromCharCode(10);
+  var desc = '';
+  desc += 'POC ' + fmt(sr.poc.priceMid) + ' → 해당 구간에 전체 거래량의 ' + sr.poc.pct.toFixed(1) + '% 집중. 강한 지지/저항으로 작용' + NL;
+  if (sr.resistance) desc += '🔴 저항선 ' + fmt(sr.resistance.priceMid) + ' → 현재가 대비 +' + (((sr.resistance.priceMid-currentPrice)/currentPrice)*100).toFixed(1) + '% (돌파 시 강한 상승 신호)' + NL;
+  if (sr.support)    desc += '🟢 지지선 ' + fmt(sr.support.priceMid)    + ' → 현재가 대비 '  + (((sr.support.priceMid-currentPrice)/currentPrice)*100).toFixed(1)    + '% (이탈 시 하락 가속)' + NL;
+  if (sr.lvns && sr.lvns.length > 0) {
+    var nearLvn = sr.lvns.reduce(function(a,b){ return Math.abs(a.priceMid-currentPrice)<Math.abs(b.priceMid-currentPrice)?a:b; });
+    desc += '⚡ LVN(저항 공백) ' + fmt(nearLvn.priceMid) + ' 구간 → 거래 희박, 가격 이동 빠름';
+  }
+  document.getElementById('taMaeVolDesc').textContent = desc;
+}
+
+// ═══════════════════════════════════════
+// 단타 종목 추천 엔진
+// 매일 오후 3:30 자동 실행 or 수동 버튼
+// ═══════════════════════════════════════
+var autoRecEnabled = localStorage.getItem('auto_rec') === '1';
+var autoRecTimer = null;
+var lastRecData = null;
+
+function initAutoRec(){
+  if(autoRecEnabled){
+    document.getElementById('autoRecBadge').style.display='inline-flex';
+    document.getElementById('autoRecBtn').textContent='🎯 자동 추천 ON';
+    document.getElementById('autoRecBtn').style.color='var(--dn)';
+    scheduleAutoRec();
+  }
+  // 마지막 추천 복원
+  var saved = localStorage.getItem('last_stock_rec');
+  if(saved){
+    try{
+      var obj=JSON.parse(saved);
+      if(obj.text && obj.time){
+        lastRecData=obj.text;
+        var t=document.getElementById('mktBriefTime');
+        if(t) t.textContent='추천: '+obj.time;
+      }
+    }catch(e){}
+  }
+}
+
+function toggleAutoRec(){
+  autoRecEnabled = !autoRecEnabled;
+  localStorage.setItem('auto_rec', autoRecEnabled?'1':'0');
+  var badge=document.getElementById('autoRecBadge');
+  var btn=document.getElementById('autoRecBtn');
+  if(autoRecEnabled){
+    badge.style.display='inline-flex';
+    btn.textContent='🎯 자동 추천 ON';
+    btn.style.color='var(--dn)';
+    alert('자동 단타 추천 ON!\n매일 오후 3시 30분(평일 장 마감 후)\n추천 종목이 채팅에 자동으로 표시돼요.\n\n브라우저가 열려있어야 합니다.');
+    scheduleAutoRec();
+  }else{
+    badge.style.display='none';
+    btn.textContent='🎯 자동 추천 설정';
+    btn.style.color='#EF4444';
+    if(autoRecTimer){clearTimeout(autoRecTimer);autoRecTimer=null;}
+    alert('자동 추천 OFF');
+  }
+}
+
+function scheduleAutoRec(){
+  if(autoRecTimer){clearTimeout(autoRecTimer);autoRecTimer=null;}
+  if(!autoRecEnabled)return;
+  var now=new Date();
+  var next=new Date();
+  next.setHours(15,30,0,0);
+  if(now>=next) next.setDate(next.getDate()+1);
+  // 주말 건너뜀
+  while(next.getDay()===0||next.getDay()===6) next.setDate(next.getDate()+1);
+  var ms=next-now;
+  var h=Math.floor(ms/3600000);
+  var min=Math.floor((ms%3600000)/60000);
+  var status=document.getElementById('mktBriefStatus');
+  if(status) status.textContent='다음 추천: '+h+'시간 '+min+'분 후 (3:30)';
+  autoRecTimer=setTimeout(function(){
+    var d=new Date();
+    if(d.getDay()!==0&&d.getDay()!==6){
+      getStockRec(true);
+    }
+    scheduleAutoRec();
+  },ms);
+}
+
+async function getStockRec(isAuto){
+  if(!gKey){alert('AI채팅 탭에서 Gemini API 키를 먼저 저장해주세요!');return;}
+  var btn=document.getElementById('stockRecBtn');
+  btn.disabled=true; btn.textContent='분석 중...';
+
+  var today=new Date();
+  var dateStr=today.getFullYear()+'년 '+(today.getMonth()+1)+'월 '+today.getDate()+'일 '+['일','월','화','수','목','금','토'][today.getDay()]+'요일';
+  var NL=String.fromCharCode(10);
+
+  // 시황 데이터 수집
+  var mktInfo='';
+  try{
+    var r=await fetch('/api/stock?action=market_kr');
+    var d=await r.json();
+    var parts=[];
+    if(d.kospi&&d.kospi.price) parts.push('KOSPI '+d.kospi.price.toLocaleString()+' ('+d.kospi.chg+'%)');
+    if(d.kosdaq&&d.kosdaq.price) parts.push('KOSDAQ '+d.kosdaq.price.toLocaleString()+' ('+d.kosdaq.chg+'%)');
+    if(d.usdkrw&&d.usdkrw.price) parts.push('USD/KRW '+Math.round(d.usdkrw.price)+'원');
+    if(parts.length) mktInfo='[오늘 시황] '+parts.join(' | ');
+  }catch(e){}
+
+  // 뉴스 수집
+  var newsInfo='';
+  try{
+    var rn=await fetch('/api/stock?action=news',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:'주식 단타 급등 테마 오늘'})});
+    var dn=await rn.json();
+    if(dn.items&&dn.items.length){
+      var headlines=dn.items.slice(0,4).map(function(x){return '• '+x.title.replace(/<[^>]*>/g,'');});
+      newsInfo='[주요 뉴스]'+NL+headlines.join(NL);
+    }
+  }catch(e){}
+
+  var prompt = dateStr+' 장 마감 후 단기 매매 종목 추천'+NL
+    +mktInfo+NL
+    +newsInfo+NL+NL
+    +'오늘 시황과 뉴스를 바탕으로 내일 또는 단기(1~3일) 단타 매매에 적합한 종목 3~5개를 추천해주세요.'+NL+NL
+    +'아래 형식을 반드시 지켜주세요:'+NL+NL
+    +'━━━━━━━━━━━━━━━━━━━━'+NL
+    +'🎯 [종목명] (티커/코드)'+NL
+    +'매수가: ○○○원 (또는 $○○)'+NL
+    +'목표가: ○○○원 (+○%)'+NL
+    +'손절가: ○○○원 (-○%)'+NL
+    +'추천 이유: ○○○○○'+NL
+    +'리스크: ○○○○○'+NL
+    +'━━━━━━━━━━━━━━━━━━━━'+NL+NL
+    +'(위 형식으로 3~5종목 작성)'+NL+NL
+    +'마지막에 한줄 총평도 추가해주세요.'+NL+NL
+    +'⚠️ 투자 판단은 본인 책임임을 명시해주세요.';
+
+  try{
+    var resp=await fetch('/api/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        apiKey:gKey,
+        model:gMod,
+        messages:[{role:'user',parts:[{text:prompt}]}],
+        systemPrompt:'당신은 키움증권 단기 트레이딩 전문 애널리스트입니다. 매일 장 마감 후 단타 매매 추천 종목을 제공합니다. 실제 시황과 뉴스를 반영하여 구체적인 매수가/목표가/손절가를 제시하세요.'
+      })
+    });
+    var rd=await resp.json();
+
+    if(rd.error){
+      var errMsg=rd.error.message||'AI 오류';
+      addMsg('ai','❌ 추천 오류: '+errMsg);
+      return;
+    }
+
+    var reply=rd.reply||'추천 실패';
+    lastRecData=reply;
+
+    // 저장
+    var now2=new Date();
+    localStorage.setItem('last_stock_rec',JSON.stringify({
+      text:reply,
+      time:now2.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})
+    }));
+
+    // 채팅 탭으로 이동 + 메시지 표시
+    var chatTab=document.querySelector('[onclick*="pg-chat"]')||document.querySelector('.ntab');
+    if(chatTab) switchPg(chatTab,'chat');
+    var w=document.getElementById('welc');
+    if(w) w.style.display='none';
+
+    // 헤더 메시지
+    var header='🎯 '+dateStr+' 단타 추천 종목'+NL+'━━━━━━━━━━━━━━━━━━━━'+NL+NL;
+    addMsg('ai', header+reply);
+
+    // 타임스탬프 업데이트
+    var t=document.getElementById('mktBriefTime');
+    if(t) t.textContent='추천: '+now2.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+
+    // 자동실행이면 알림
+    if(isAuto){
+      showMktNotification('🎯 오늘 단타 추천 종목이 도착했어요! 채팅 탭을 확인하세요.');
+    }
+
+  }catch(e){
+    addMsg('ai','❌ 단타 추천 오류: '+e.message);
+  }finally{
+    btn.disabled=false;
+    btn.textContent='🎯 단타 추천';
   }
 }
 </script>
