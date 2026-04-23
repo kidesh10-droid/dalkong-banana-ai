@@ -12,47 +12,55 @@ module.exports = async function handler(req, res) {
     const trimmed = messages && messages.length > 20 ? messages.slice(-20) : (messages || []);
     const lastMsg = trimmed[trimmed.length - 1]?.parts?.[0]?.text || '';
 
-    // 실시간 검색 필요 여부
-    const needsSearch = [
-      '날씨','기온','오늘','내일','뉴스','최신','현재','지금','주가','시세',
-      '환율','금리','유가','속보','실시간','주식','코스피','비트코인'
+    // google_search는 일반 채팅에서만, 긴 분석 프롬프트엔 사용 안 함
+    const isShortChat = lastMsg.length < 200;
+    const needsSearch = isShortChat && [
+      '날씨','기온','내일','뉴스','속보','실시간','지금 주가','현재 환율'
     ].some(k => lastMsg.includes(k));
 
     const baseBody = {
       system_instruction: { parts: [{ text: systemPrompt || '' }] },
       contents: trimmed,
       generationConfig: {
-        temperature: 0.8,
+        temperature: 0.7,
         maxOutputTokens: 2048,
         topP: 0.95
       }
     };
 
-    // 2026.04 현재 v1beta generateContent 확실히 동작하는 모델
-    // gemini-2.5-flash 계열은 preview 접미사 필요, 없으면 1.5-flash 사용
-    const WORKING_MODELS = [
-      'gemini-1.5-flash',
-      'gemini-1.5-pro',
-      'gemini-1.5-flash-latest',
-    ];
-
-    // 요청 모델이 1.5 계열이면 그대로 사용, 아니면 1.5-flash 우선
-    const startModel = (model && model.includes('1.5')) ? model : 'gemini-1.5-flash';
-    const fallbacks = [startModel, ...WORKING_MODELS].filter((v,i,a) => v && a.indexOf(v) === i);
+    // 사용 가능한 모델 목록 (2026.04 기준 v1beta 확인됨)
+    const MODELS = ['gemini-1.5-flash', 'gemini-1.5-pro'];
+    const startModel = (model && (model.includes('1.5') || model.includes('flash') || model.includes('pro')))
+      ? (model.includes('1.5') ? model : 'gemini-1.5-flash')
+      : 'gemini-1.5-flash';
+    const fallbacks = [startModel, ...MODELS].filter((v,i,a) => v && a.indexOf(v) === i);
 
     for (const mdl of fallbacks) {
+      // tools 없이 먼저 시도 (안정성 우선)
       const body = { ...baseBody };
-      // 검색 도구 추가 (1.5 계열만 지원)
-      if (needsSearch) {
-        body.tools = [{ google_search: {} }];
+      if (needsSearch) body.tools = [{ google_search: {} }];
+
+      const result = await tryCall(mdl, body, apiKey);
+
+      // tools 오류 → tools 없이 재시도
+      if (result && result.toolError) {
+        const result2 = await tryCall(mdl, { ...baseBody }, apiKey);
+        if (result2 && result2.reply) return res.status(200).json({ reply: result2.reply });
+        if (result2 === null) continue;
       }
-      const result = await tryCall(mdl, body, apiKey, needsSearch);
-      if (result === null) { console.log(mdl, '과부하/실패, 다음 시도'); continue; }
+
+      if (result === null) continue;
       if (result.reply) return res.status(200).json({ reply: result.reply });
+
       if (result.error) {
-        // 모델 없음 오류면 다음 모델 시도
         const msg = result.error.message || '';
-        if (msg.includes('not found') || msg.includes('not supported') || msg.includes('no longer')) continue;
+        // 모델 없음/미지원 → 다음 모델
+        if (msg.includes('not found') || msg.includes('not supported') ||
+            msg.includes('no longer') || msg.includes('deprecated')) continue;
+        // 과부하 → 다음 모델
+        if (msg.includes('overloaded') || msg.includes('RESOURCE_EXHAUSTED') ||
+            msg.includes('quota') || msg.includes('503')) continue;
+        // 그 외 실제 오류 (잘못된 API 키 등) → 즉시 반환
         return res.status(200).json({ error: result.error });
       }
     }
@@ -64,7 +72,7 @@ module.exports = async function handler(req, res) {
   }
 }
 
-async function tryCall(mdl, body, apiKey, withSearch) {
+async function tryCall(mdl, body, apiKey) {
   try {
     const r = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${mdl}:generateContent?key=${apiKey}`,
@@ -77,17 +85,13 @@ async function tryCall(mdl, body, apiKey, withSearch) {
 
     if (d.error) {
       const msg = d.error.message || '';
-      // 과부하/할당량 → null (다음 모델)
-      if (msg.includes('overloaded') || msg.includes('high demand') ||
-          msg.includes('RESOURCE_EXHAUSTED') || msg.includes('quota') || msg.includes('503')) {
-        return null;
+      // tools 관련 오류 → 특별 처리
+      if (msg.includes('tool') || msg.includes('INVALID_ARGUMENT')) {
+        return { toolError: true };
       }
-      // tools 미지원 → tools 제거 재시도
-      if (withSearch && (msg.includes('tool') || msg.includes('INVALID_ARGUMENT') || msg.includes('not supported'))) {
-        const body2 = { ...body };
-        delete body2.tools;
-        return await tryCall(mdl, body2, apiKey, false);
-      }
+      // 과부하 → null
+      if (msg.includes('overloaded') || msg.includes('RESOURCE_EXHAUSTED') ||
+          msg.includes('quota') || msg.includes('503')) return null;
       return { error: d.error };
     }
 
