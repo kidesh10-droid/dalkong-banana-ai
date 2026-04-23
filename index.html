@@ -1132,7 +1132,7 @@ id="sp-portfolio">
 <script>
 
 // ══ STATE ══
-var gKey=localStorage.getItem('gk')||'',gMod='gemini-2.5-flash-preview-04-17';
+var gKey=localStorage.getItem('gk')||'',gMod='gemini-1.5-flash';
 var chatH=[],isLoad=false,selImg=null;
 var kisToken=null,trMode='mock';
 var acctNo=localStorage.getItem('ka')||'',acctProd=localStorage.getItem('kp')||'01';
@@ -1168,7 +1168,7 @@ var SYS='당신은 달콩이입니다. 마초킹님의 전용 AI 비서예요.\n
 
 // ══ INIT ══
 window.onload=function(){
-  localStorage.setItem('gm','gemini-2.5-flash-preview-04-17');
+  localStorage.setItem('gm','gemini-1.5-flash');
   initAutoMkt();
   if(gKey){document.getElementById('apiIn').value=gKey;setStat(true);document.getElementById('apiOk').style.display='inline';addSysMsg('🐻 달콩이 준비 완료!');}
   if(acctNo)document.getElementById('acctNo').value=acctNo;
