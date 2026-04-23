@@ -3871,7 +3871,7 @@ async function getStockRec(isAuto){
 async function callGeminiDirect(prompt, systemPrompt){
   if(!gKey){alert('AI채팅 탭에서 Gemini API 키를 먼저 저장해주세요!');return null;}
   // 2026.04 현재 v1beta 동작 확인된 모델 순서
-  var models=['gemini-1.5-flash','gemini-1.5-pro','gemini-1.5-flash-latest'];
+  var models=['gemini-1.5-flash','gemini-1.5-pro'];
   var body={
     system_instruction:{parts:[{text:systemPrompt||''}]},
     contents:[{role:'user',parts:[{text:prompt}]}],
