@@ -1656,18 +1656,9 @@ async function getMktBrief(isAuto){
     +'각 섹션은 간결하고 핵심만 담아주세요.';
 
   try{
-    var resp = await fetch('/api/chat',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        apiKey:gKey,
-        model:gMod,
-        messages:[{role:'user',parts:[{text:prompt}]}],
-        systemPrompt:'당신은 한국 주식시장 전문 애널리스트입니다. 실시간 데이터를 바탕으로 투자자에게 유용한 시황 분석을 제공합니다. 간결하고 핵심적으로 작성하세요.'
-      })
-    });
-    var rd = await resp.json();
-    if(rd.error){content.textContent='오류: '+rd.error.message;return;}
+    var rd=await callGeminiDirect(prompt,'당신은 한국 주식시장 전문 애널리스트입니다. 실시간 데이터를 바탕으로 투자자에게 유용한 시황 분석을 제공합니다. 간결하고 핵심적으로 작성하세요.');
+    if(!rd){return;}
+    if(rd.error){content.textContent='오류: '+rd.error;return;}
     var brief = rd.reply || '';
     mktBriefData = brief;
     content.textContent = dateStr+' 시황'+NL+NL+brief;
@@ -3833,24 +3824,12 @@ async function getStockRec(isAuto){
     +'⚠️ 투자 판단은 본인 책임임을 명시해주세요.';
 
   try{
-    var resp=await fetch('/api/chat',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        apiKey:gKey,
-        model:gMod,
-        messages:[{role:'user',parts:[{text:prompt}]}],
-        systemPrompt:'당신은 키움증권 단기 트레이딩 전문 애널리스트입니다. 매일 장 마감 후 단타 매매 추천 종목을 제공합니다. 실제 시황과 뉴스를 반영하여 구체적인 매수가/목표가/손절가를 제시하세요.'
-      })
-    });
-    var rd=await resp.json();
-
+    var rd=await callGeminiDirect(prompt,'당신은 키움증권 단기 트레이딩 전문 애널리스트입니다. 매일 장 마감 후 단타 매매 추천 종목을 제공합니다. 실제 시황과 뉴스를 반영하여 구체적인 매수가/목표가/손절가를 제시하세요.');
+    if(!rd){return;}
     if(rd.error){
-      var errMsg=rd.error.message||'AI 오류';
-      addMsg('ai','❌ 추천 오류: '+errMsg);
+      addMsg('ai','❌ 추천 오류: '+rd.error);
       return;
     }
-
     var reply=rd.reply||'추천 실패';
     lastRecData=reply;
 
@@ -3886,6 +3865,46 @@ async function getStockRec(isAuto){
     btn.disabled=false;
     btn.textContent='🎯 단타 추천';
   }
+}
+
+// ═══ Gemini 직접 호출 (서버 우회) ═══
+async function callGeminiDirect(prompt, systemPrompt){
+  if(!gKey){alert('AI채팅 탭에서 Gemini API 키를 먼저 저장해주세요!');return null;}
+  // 2026.04 현재 v1beta 동작 확인된 모델 순서
+  var models=['gemini-1.5-flash','gemini-1.5-pro','gemini-1.5-flash-latest'];
+  var body={
+    system_instruction:{parts:[{text:systemPrompt||''}]},
+    contents:[{role:'user',parts:[{text:prompt}]}],
+    generationConfig:{temperature:0.7,maxOutputTokens:2048}
+  };
+  var lastErr='';
+  for(var i=0;i<models.length;i++){
+    try{
+      var r=await fetch(
+        'https://generativelanguage.googleapis.com/v1beta/models/'+models[i]+':generateContent?key='+gKey,
+        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}
+      );
+      var d=await r.json();
+      if(d.error){
+        lastErr=d.error.message||JSON.stringify(d.error);
+        var msg=lastErr;
+        // 할당량 초과
+        if(msg.includes('RESOURCE_EXHAUSTED')||msg.includes('quota')||msg.includes('429')){
+          return {error:'⚠️ API 사용량 한도 초과\n잠시 후 다시 시도하거나 내일 시도해주세요.\n(무료: 분당 15회 / 일 1,500회)'};
+        }
+        // API 키 오류
+        if(msg.includes('API_KEY_INVALID')||msg.includes('401')||msg.includes('invalid')){
+          return {error:'❌ API 키 오류\nAI채팅 탭에서 Gemini API 키를 다시 확인해주세요.'};
+        }
+        // 모델 없음 → 다음 모델 시도
+        if(msg.includes('not found')||msg.includes('not supported')||msg.includes('no longer')) continue;
+        return {error:lastErr};
+      }
+      var text=d.candidates&&d.candidates[0]&&d.candidates[0].content&&d.candidates[0].content.parts&&d.candidates[0].content.parts[0]&&d.candidates[0].content.parts[0].text;
+      if(text) return {reply:text};
+    }catch(e){lastErr=e.message;}
+  }
+  return {error:'모든 모델 실패: '+lastErr};
 }
 </script>
 </body>
