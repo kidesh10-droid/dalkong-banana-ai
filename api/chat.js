@@ -37,7 +37,18 @@ module.exports = async function handler(req, res) {
 
     // 모델 폴백 (과부하 시 자동 전환)
     // 현재 지원 모델 (2026.04 기준) - 2.5-flash만 안정적
-    const fallbacks = [model, 'gemini-2.5-flash', 'gemini-2.5-flash-8b'].filter((v,i,a)=>v&&a.indexOf(v)===i);
+    // 모델명 정규화 (단축명 → 실제 API명)
+    const MODEL_MAP = {
+      'gemini-2.5-flash':     'gemini-2.5-flash-preview-04-17',
+      'gemini-2.5-pro':       'gemini-2.5-pro-preview-03-25',
+      'gemini-2.0-flash':     'gemini-1.5-flash',
+      'gemini-2.5-flash-8b':  'gemini-1.5-flash',
+    };
+    const resolveModel = m => MODEL_MAP[m] || m;
+    const fallbacks = [model, 'gemini-2.5-flash-preview-04-17', 'gemini-1.5-flash']
+      .filter((v,i,a)=>v&&a.indexOf(v)===i)
+      .map(resolveModel)
+      .filter((v,i,a)=>a.indexOf(v)===i);
 
     for (const mdl of fallbacks) {
       const result = await tryCall(mdl, body, apiKey, needsSearch);
