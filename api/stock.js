@@ -360,6 +360,209 @@ module.exports = async function handler(req, res) {
       }
     }
 
+
+    // ── KIS 단타 스크리닝 ──
+    // ── 장외 종목 스크리닝 (Yahoo Finance 기반) ──
+    if (action === 'screening_yahoo') {
+      // KIS 없이도 동작 - Yahoo Finance 데이터로 스크리닝
+      const KOSPI200 = [
+        '005930','000660','035420','005380','051910',
+        '006400','028260','012330','066570','017670',
+        '000270','032830','105560','055550','086790',
+        '034730','018260','011200','024110','316140',
+        '003550','010130','326030','009150','096770',
+        '003490','011790','033780','034020','015760',
+        '047050','030200','003670','000100','011070',
+        '021240','009830','010950','012450','011170'
+      ];
+
+      try {
+        // 병렬로 40종목 데이터 수집
+        const results = await Promise.all(
+          KOSPI200.slice(0, 40).map(async code => {
+            try {
+              const sym = code + '.KS';
+              const r = await fetch(
+                'https://query1.finance.yahoo.com/v8/finance/chart/' + sym + '?interval=1d&range=60d'
+              );
+              const d = await r.json();
+              const q = d.chart?.result?.[0];
+              if (!q) return null;
+
+              const closes  = q.indicators.quote[0].close.filter(Boolean);
+              const volumes  = q.indicators.quote[0].volume.filter(Boolean);
+              const highs    = q.indicators.quote[0].high.filter(Boolean);
+              const lows     = q.indicators.quote[0].low.filter(Boolean);
+              if (closes.length < 20) return null;
+
+              const last    = closes[closes.length - 1];
+              const prev    = closes[closes.length - 2] || last;
+              const pct     = ((last - prev) / prev * 100);
+              const vol     = volumes[volumes.length - 1] || 0;
+              const avgVol  = volumes.slice(-20).reduce((s,v)=>s+v,0) / 20;
+              const volRatio = avgVol > 0 ? vol / avgVol : 0;
+
+              // RSI 계산 (14일)
+              const gains = [], losses = [];
+              for (let i = closes.length - 15; i < closes.length; i++) {
+                const diff = closes[i] - closes[i-1];
+                gains.push(diff > 0 ? diff : 0);
+                losses.push(diff < 0 ? -diff : 0);
+              }
+              const avgGain = gains.reduce((s,v)=>s+v,0) / 14;
+              const avgLoss = losses.reduce((s,v)=>s+v,0) / 14;
+              const rs  = avgLoss > 0 ? avgGain / avgLoss : 100;
+              const rsi = 100 - (100 / (1 + rs));
+
+              // 이동평균
+              const ma5  = closes.slice(-5).reduce((s,v)=>s+v,0) / 5;
+              const ma20 = closes.slice(-20).reduce((s,v)=>s+v,0) / 20;
+
+              // 52주 고점 대비
+              const hi52 = Math.max(...closes.slice(-252));
+              const hiRatio = last / hi52;
+
+              const meta = q.meta || {};
+              const name = meta.shortName || meta.longName || code;
+
+              return { code, name, price: last, pct, volRatio, rsi, ma5, ma20, hi52, hiRatio, vol, avgVol };
+            } catch { return null; }
+          })
+        );
+
+        const valid = results.filter(Boolean);
+
+        // 스크리닝 조건
+        const candidates = valid.filter(s => {
+          return s.pct > -2 && s.pct < 15       // 급락/급등 제외
+            && s.volRatio >= 1.3                 // 거래량 증가
+            && s.rsi >= 40 && s.rsi <= 70        // RSI 과매수/과매도 제외
+            && s.price >= 3000 && s.price <= 300000
+            && s.ma5 >= s.ma20 * 0.98;           // 단기 > 장기MA (상승추세)
+        });
+
+        // 스코어링
+        const scored = candidates.map(s => {
+          let score = 0;
+          // 거래량 (30점)
+          score += Math.min(s.volRatio * 10, 30);
+          // RSI 적정 구간 50~65 (20점)
+          if (s.rsi >= 50 && s.rsi <= 65) score += 20;
+          else if (s.rsi >= 45 && s.rsi < 50) score += 10;
+          // MA 정배열 (20점)
+          if (s.ma5 > s.ma20) score += 20;
+          // 상승 강도 (15점)
+          if (s.pct > 3) score += 15;
+          else if (s.pct > 1) score += 8;
+          else if (s.pct > 0) score += 3;
+          // 신고가 근접 (15점)
+          if (s.hiRatio >= 0.97) score += 15;
+          else if (s.hiRatio >= 0.90) score += 8;
+
+          const targetPct = s.pct > 3 ? 3 : 4;
+          const target = Math.round(s.price * (1 + targetPct / 100) / 100) * 100;
+          const stop   = Math.round(s.price * 0.97 / 100) * 100;
+          const entry  = Math.round(s.price * 1.003 / 100) * 100;
+
+          const reasons = [];
+          if (s.volRatio >= 2) reasons.push('거래량 급증(' + s.volRatio.toFixed(1) + '배)');
+          else reasons.push('거래량 증가(' + s.volRatio.toFixed(1) + '배)');
+          if (s.rsi >= 50 && s.rsi <= 65) reasons.push('RSI 양호(' + s.rsi.toFixed(0) + ')');
+          if (s.ma5 > s.ma20) reasons.push('단기MA 상향');
+          if (s.hiRatio >= 0.95) reasons.push('52주 고점 근접');
+          if (s.pct > 0) reasons.push('당일 '+s.pct.toFixed(1)+'% 상승');
+
+          return { ...s, score: Math.round(score), target, stop, entry, targetPct, reason: reasons.join(' · ') };
+        });
+
+        scored.sort((a, b) => b.score - a.score);
+        return res.status(200).json({ result: scored.slice(0, 5), total: valid.length, screened: candidates.length });
+
+      } catch(e) {
+        return res.status(200).json({ error: e.message });
+      }
+    }
+
+    if (action === 'kis_screening') {
+      const { token, mode } = body;
+      const c = mode === 'real' ? KIS_REAL : KIS_MOCK;
+
+      const buildReason = (pct, volRatio, price, hiRatio) => {
+        const parts = [];
+        if (pct >= 8)  parts.push('강한 급등');
+        else if (pct >= 5) parts.push('상승 모멘텀');
+        else parts.push('완만한 상승');
+        if (volRatio >= 3) parts.push('거래량 폭발('+volRatio.toFixed(0)+'배)');
+        else if (volRatio >= 2) parts.push('거래량 급증('+volRatio.toFixed(0)+'배)');
+        else parts.push('거래량 증가('+volRatio.toFixed(0)+'배)');
+        if (hiRatio >= 0.97) parts.push('신고가 근접');
+        if (price >= 10000 && price <= 100000) parts.push('단타 적정 가격대');
+        return parts.join(' · ');
+      };
+
+      try {
+        const [riseRes, volRes] = await Promise.all([
+          fetch(
+            c.base+'/uapi/domestic-stock/v1/ranking/fluctuation?fid_aply_rang_prc_5=0&fid_aply_rang_prc_4=0&fid_cond_mrkt_div_code=J&fid_cond_scr_div_code=20170&fid_input_iscd=0000&fid_rank_sort_cls_code=0&fid_input_cnt_1=0&fid_prc_cls_code=1&fid_rank_sort_cls_code2=&fid_blng_cls_code=0',
+            { headers: { 'content-type':'application/json', 'authorization':'Bearer '+token, 'appkey':c.key, 'appsecret':c.secret, 'tr_id':'FHPST01700000', 'custtype':'P' } }
+          ),
+          fetch(
+            c.base+'/uapi/domestic-stock/v1/ranking/volume?fid_aply_rang_vol=0&fid_cond_mrkt_div_code=J&fid_cond_scr_div_code=20171&fid_input_iscd=0000&fid_rank_sort_cls_code=0&fid_input_cnt_1=0&fid_trgt_cls_code=0&fid_trgt_exls_cls_code=0&fid_div_cls_code=0&fid_blng_cls_code=0&fid_input_price_1=1000&fid_input_price_2=500000&fid_vol_cnt=100000',
+            { headers: { 'content-type':'application/json', 'authorization':'Bearer '+token, 'appkey':c.key, 'appsecret':c.secret, 'tr_id':'FHPST01710000', 'custtype':'P' } }
+          )
+        ]);
+
+        const rise = await sj(riseRes);
+        const vol  = await sj(volRes);
+        const riseList = (rise.output || []);
+
+        const candidates = riseList.filter(s => {
+          const pct      = parseFloat(s.prdy_ctrt || 0);
+          const price    = parseInt(s.stck_prpr  || 0);
+          const vol2     = parseInt(s.acml_vol   || 0);
+          const prevV    = parseInt(s.prdy_vol   || 1);
+          const volRatio = prevV > 0 ? vol2 / prevV : 0;
+          return pct >= 2 && pct <= 15 && price >= 3000 && price <= 300000 && volRatio >= 1.5;
+        });
+
+        const scored = candidates.map(s => {
+          const pct      = parseFloat(s.prdy_ctrt || 0);
+          const price    = parseInt(s.stck_prpr  || 0);
+          const vol2     = parseInt(s.acml_vol   || 0);
+          const prevV    = parseInt(s.prdy_vol   || 1);
+          const volRatio = prevV > 0 ? vol2 / prevV : 0;
+          const hiPrice  = parseInt(s.stck_hgpr  || price);
+
+          let score = 0;
+          score += Math.min(pct * 4, 30);
+          score += Math.min(volRatio * 10, 30);
+          score += pct > 5 ? 20 : pct > 3 ? 10 : 5;
+          if (price >= 10000 && price <= 100000) score += 10;
+          else if (price >= 5000) score += 5;
+          const hiRatio = hiPrice > 0 ? price / hiPrice : 0;
+          if (hiRatio >= 0.95) score += 10;
+
+          const targetPct = pct > 8 ? 3 : pct > 5 ? 4 : 5;
+          const target = Math.round(price * (1 + targetPct / 100) / 100) * 100;
+          const stop   = Math.round(price * 0.97 / 100) * 100;
+          const entry  = Math.round(price * 1.005 / 100) * 100;
+
+          return {
+            code: s.mksc_shrn_iscd, name: s.hts_kor_isnm,
+            price, pct: pct.toFixed(1), volRatio: volRatio.toFixed(1),
+            score: Math.round(score), entry, target, stop, targetPct,
+            reason: buildReason(pct, volRatio, price, hiRatio)
+          };
+        });
+
+        scored.sort((a, b) => b.score - a.score);
+        return res.status(200).json({ result: scored.slice(0, 5) });
+
+      } catch(e) {
+        return res.status(200).json({ error: e.message });
+      }
+    }
+
     return res.status(400).json({ error: 'Unknown action: ' + action });
 
   } catch(err) {
