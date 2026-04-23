@@ -58,9 +58,17 @@ module.exports = async function handler(req, res) {
         if (msg.includes('not found') || msg.includes('not supported') ||
             msg.includes('no longer') || msg.includes('deprecated')) continue;
         // 과부하 → 다음 모델
-        if (msg.includes('overloaded') || msg.includes('RESOURCE_EXHAUSTED') ||
-            msg.includes('quota') || msg.includes('503')) continue;
-        // 그 외 실제 오류 (잘못된 API 키 등) → 즉시 반환
+        if (msg.includes('overloaded') || msg.includes('503')) continue;
+        // 할당량 초과 → 즉시 명확한 메시지 반환 (다른 모델도 같은 키라 의미없음)
+        if (msg.includes('RESOURCE_EXHAUSTED') || msg.includes('quota') ||
+            msg.includes('rate limit') || msg.includes('429')) {
+          return res.status(200).json({ error: { message: '⚠️ API 사용량 한도 초과\n\nGemini 무료 한도에 도달했어요.\n잠시 기다리거나 내일 다시 시도해주세요.\n(무료: 분당 15회 / 일 1,500회)' } });
+        }
+        // 잘못된 API 키
+        if (msg.includes('API_KEY_INVALID') || msg.includes('invalid') || msg.includes('401')) {
+          return res.status(200).json({ error: { message: '❌ API 키가 올바르지 않아요. AI채팅 탭에서 키를 다시 확인해주세요.' } });
+        }
+        // 그 외 → 실제 오류 메시지 전달
         return res.status(200).json({ error: result.error });
       }
     }
