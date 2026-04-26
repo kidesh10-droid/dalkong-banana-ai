@@ -2262,33 +2262,39 @@ function runSeoCheck(){
 }
 
 // ══ 업무 ══
-async function workAI(prompt,resultId){
-  if(!gKey){alert('Gemini API 키 먼저!');return;}
-  document.getElementById(resultId).textContent='AI 분석 중...';
-  try{var r=await callGeminiDirect(prompt,'마케팅 및 이커머스 전문가. 실용적이고 구체적인 답변.');var d=await r.json();document.getElementById(resultId).textContent=d.reply||(d&&d.error)||'분석 실패';}catch(e){document.getElementById(resultId).textContent='오류: '+e.message;}
+async function workAI(prompt,resultId,sys){
+  if(!gKey){alert('AI채팅 탭에서 Gemini API 키를 먼저 저장해주세요!');return;}
+  var el=document.getElementById(resultId);
+  if(el) el.textContent='AI 분석 중...';
+  try{
+    var d=await callGeminiDirect(prompt,sys||'마케팅 및 이커머스 전문가. 실용적이고 구체적인 답변.');
+    if(!d){if(el)el.textContent='응답 없음';return;}
+    if(d.error){if(el)el.textContent=d.error;return;}
+    if(el)el.textContent=d.reply||'분석 실패';
+  }catch(e){if(el)el.textContent='오류: '+e.message;}
 }
-function analyzeKeyword(){
+async function analyzeKeyword(){
   var kw=document.getElementById('kwInput').value.trim();var ch=document.getElementById('kwChannel').value;
   if(!kw){alert('키워드 입력!');return;}
   var prompt='"'+kw+'" 키워드 '+ch+' 채널 마케팅 분석:\n1. 월간 예상 검색량\n2. 경쟁 강도 (상/중/하)\n3. 구매 의도 분석\n4. 연관 키워드 15개 (검색량 많은 순)\n5. 광고 입찰가 예상\n6. 시즌 트렌드\n7. 핵심 타겟 고객층\n8. 채널별 공략 전략 (네이버/쿠팡)';
-  workAI(prompt,'kwResult');
+  await workAI(prompt,'kwResult');
 }
-function getTrendKeywords(){
+async function getTrendKeywords(){
   var cat=document.getElementById('trendCategory').value.trim();if(!cat){alert('카테고리 입력!');return;}
   var prompt=cat+' 카테고리 최신 트렌드 키워드 분석:\n1. 현재 핫 키워드 TOP 10\n2. 급상승 키워드 5개 (이유 포함)\n3. 시즌 키워드 5개\n4. 롱테일 키워드 10개\n5. 관련 상품 기회 분석\n6. 경쟁 낮고 검색량 높은 틈새 키워드 5개';
-  workAI(prompt,'trendResult');
+  await workAI(prompt,'trendResult');
 }
-function checkNaverRank(){
+async function checkNaverRank(){
   var kw=document.getElementById('rankKeyword').value.trim();var prod=document.getElementById('rankProduct').value.trim();
   if(!kw||!prod){alert('키워드와 상품명 입력!');return;}
   var prompt='네이버 쇼핑에서 "'+kw+'" 검색 시 "'+prod+'" 상품 순위 분석:\n\n1. 예상 현재 순위 (1~100위 범위)\n2. 상위 노출을 위한 핵심 요소 분석:\n   - 리뷰 수/품질\n   - 판매량\n   - 클릭율\n   - 상품명 최적화\n   - 가격 경쟁력\n3. 상위 노출 경쟁 상품 특징\n4. 순위 상승을 위한 구체적 액션플랜 5가지\n5. 예상 소요 기간';
-  workAI(prompt,'rankResult');
+  await workAI(prompt,'rankResult');
 }
-function generateSeoName(){
+async function generateSeoName(){
   var name=document.getElementById('seoProductName').value.trim();var desc=document.getElementById('seoProductDesc').value.trim();var ch=document.getElementById('seoChannel').value;
   if(!name){alert('상품명 입력!');return;}
   var parts1=['상품명: '+name,'특징/키워드: '+desc,'채널: '+ch,'','이 상품의 SEO 최적화 상품명을 생성해주세요:','','1. 메인 상품명 (30~40자, 핵심 키워드 포함)','   형식: [브랜드] [카테고리] [핵심키워드1] [핵심키워드2] [특징]','','2. 대안 상품명 3가지 (각각 다른 키워드 조합)','','3. 각 상품명에 포함된 SEO 키워드 설명','','4. 상품명에 포함하면 안 되는 금지어 주의사항','','5. 해시태그 추천 10개'];var prompt=parts1.join('\n');
-  workAI(prompt,'seoNameResult');
+  await workAI(prompt,'seoNameResult');
 }
 function getMonthlyKeyword(){
   var kw=document.getElementById('monthlyKw').value.trim();var period=document.getElementById('monthlyPeriod').value;
@@ -2985,11 +2991,17 @@ async function runQuantAnalysis(){
     await Promise.all(quantTickerArr.map(async function(ticker){
       try{
         var sym=market==='kr'?ticker+'.KS':market==='kr_kosdaq'?ticker+'.KQ':ticker;
-        var r=await fetch('https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(sym)+'?interval=1d&range=1y');
-        var d=await r.json();
-        var q=d.chart&&d.chart.result&&d.chart.result[0];
-        if(!q){priceData[ticker]={error:'no data'};return;}
-        var closes=q.indicators.quote[0].close.filter(Boolean);
+        var r=await fetch('/api/stock?action=chart',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({symbol:sym,range:'1y'})});
+        var raw=await r.json();
+        // /api/stock 차트 응답: {timestamps,closes,highs,lows}
+        // Yahoo 원본 형태로 변환
+        var q=null;
+        if(raw.closes&&raw.timestamps){
+          q={timestamp:raw.timestamps,indicators:{quote:[{close:raw.closes,high:raw.highs,low:raw.lows,open:raw.closes,volume:raw.closes.map(function(){return 100000;})}]}};
+        }
+        if(!q){priceData[ticker]={error:'데이터 없음 ('+sym+')'};return;}
+        var closes=(q.indicators&&q.indicators.quote&&q.indicators.quote[0]&&q.indicators.quote[0].close||[]).filter(Boolean);
+        if(closes.length<2){priceData[ticker]={error:'데이터 부족'};return;}
         var last=closes[closes.length-1];
         var yr12=((last-closes[0])/closes[0]*100).toFixed(1);
         var m3=closes.length>63?((last-closes[closes.length-63])/closes[closes.length-63]*100).toFixed(1):'N/A';
@@ -3029,9 +3041,9 @@ async function runQuantAnalysis(){
       +'마지막에 TOP3 추천과 리스크 요인을 간략히.'+NL
       +'(총 500자 이내로 간결하게)';
 
-    var resp=await callGeminiDirect(prompt,'퀀트 투자 전문가. 간결하고 핵심적으로 분석.');
+    var rd=await callGeminiDirect(prompt,'퀀트 투자 전문가. 간결하고 핵심적으로 분석.');
 
-    var rd=await resp.json();
+    if(!rd){renderQuantCards(priceData,strat);document.getElementById('quantAiInsight').textContent='응답 없음';return;}
 
     if(rd.error){
       var errMsg=rd.error||JSON.stringify(rd.error);
@@ -3480,9 +3492,10 @@ async function runTA() {
         })();
 
       try {
-        var resp = await callGeminiDirect(aiPrompt,'주식 단기 트레이더. 핵심만 간결하게.');
-        var rd = await resp.json();
-        document.getElementById('taAiResult').textContent = rd.reply || (rd.error&&rd.error) || '분석 실패';
+        var rd = await callGeminiDirect(aiPrompt,'주식 단기 트레이더. 핵심만 간결하게.');
+        if(!rd){document.getElementById('taAiResult').textContent='AI 응답 없음';}
+        else if(rd.error){document.getElementById('taAiResult').textContent=rd.error;}
+        else{document.getElementById('taAiResult').textContent=rd.reply||'분석 실패';}
       } catch(e) {
         document.getElementById('taAiResult').textContent = '오류: '+e.message;
       }
