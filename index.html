@@ -1341,9 +1341,8 @@ async function sendMsg(){
   isLoad=true;document.getElementById('sndbtn').disabled=true;
   var tid=addTyp();
   try{
-    var r=await callGeminiDirect(prompt,SYS);
-    var d=await r.json();rmTyp(tid);
-    if(d.error){addMsg('ai','❌ '+d.error.message);chatH.pop();}
+    var d=await callGeminiDirect(prompt,SYS);rmTyp(tid);
+    if(d.error){addMsg('ai','❌ '+d.error);chatH.pop();}
     else{
       var rep=d.reply||'응답 없음';addMsg('ai',rep);
       chatH.push({role:'model',parts:[{text:rep}]});
@@ -2029,8 +2028,7 @@ async function autoFillStock(){
   status.textContent='🔍 Gemini가 실시간으로 조회하고 있어요...';status.style.color='var(--bl)';
   try{
     var p='주식 종목 "'+query+'" 정보를 JSON으로만 답해주세요. 설명 없이 JSON만 출력: {"name":"정식종목명","code":"티커또는종목코드","curPrice":현재가숫자,"divRate":연배당수익률숫자_없으면0,"market":"KR또는US","currency":"KRW또는USD"} 현재가와배당률은실시간데이터로.';
-    var r=await callGeminiDirect(p,'주식 데이터 전문가. JSON만 출력. 추가설명 금지.');
-    var d=await r.json();if(d.error)throw new Error(d.error.message);
+    var d=await callGeminiDirect(p,'주식 데이터 전문가. JSON만 출력. 추가설명 금지.');if(d.error)throw new Error(d.error);
     var reply=d.reply||'';var m=reply.match(/\{[\s\S]*?\}/);if(!m)throw new Error('파싱 실패');
     var info=JSON.parse(m[0]);
     if(info.name)document.getElementById('pfInputName').value=info.name;
@@ -2064,7 +2062,7 @@ async function refreshPfPrices(){
     try{
       if(h.market==='US'){var r=await fetch('/api/stock?action=market_us');var d=await r.json();var f=d.results&&d.results.find(function(x){return x.symbol===h.code;});if(f){h.curPrice=f.price;h.evalAmt=Math.round(h.qty*f.price*pfExRateVal);h.pnlAmt=h.evalAmt-h.buyAmt;h.pnlPct=h.buyAmt>0?(h.pnlAmt/h.buyAmt*100):0;}}
       else if(kisToken){var r2=await fetch('/api/stock?action=price_kr',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:kisToken,ticker:h.code,mode:trMode})});var d2=await r2.json();if(d2.output&&parseInt(d2.output.stck_prpr||0)>0){h.curPrice=parseInt(d2.output.stck_prpr);h.evalAmt=Math.round(h.qty*h.curPrice);h.pnlAmt=h.evalAmt-h.buyAmt;h.pnlPct=h.buyAmt>0?(h.pnlAmt/h.buyAmt*100):0;}}
-      else if(gKey){var p2='종목 "'+h.name+'('+h.code+')" 현재가 숫자만. JSON: {"price":현재가숫자}';var r3=await callGeminiDirect(p2,'주식 전문가. JSON만 출력.');var d3=await r3.json();var m2=d3.reply&&d3.reply.match(/\{[\s\S]*?\}/);if(m2){var info2=JSON.parse(m2[0]);if(info2.price>0){h.curPrice=info2.price;h.evalAmt=Math.round(h.qty*info2.price*(h.market==='US'?pfExRateVal:1));h.pnlAmt=h.evalAmt-h.buyAmt;h.pnlPct=h.buyAmt>0?(h.pnlAmt/h.buyAmt*100):0;}}}
+      else if(gKey){var p2='종목 "'+h.name+'('+h.code+')" 현재가 숫자만. JSON: {"price":현재가숫자}';var d3=await callGeminiDirect(p2,'주식 전문가. JSON만 출력.');var m2=d3.reply&&d3.reply.match(/\{[\s\S]*?\}/);if(m2){var info2=JSON.parse(m2[0]);if(info2.price>0){h.curPrice=info2.price;h.evalAmt=Math.round(h.qty*info2.price*(h.market==='US'?pfExRateVal:1));h.pnlAmt=h.evalAmt-h.buyAmt;h.pnlPct=h.buyAmt>0?(h.pnlAmt/h.buyAmt*100):0;}}}
     }catch(e){}
   }
   localStorage.setItem('pf_holdings',JSON.stringify(pfHoldingsData));renderPfAll();
@@ -2181,8 +2179,7 @@ async function generateBlog(){
   else prompt='주제: "'+topic+'"\n\n위 주제로 네이버 블로그에 최적화된 글을 작성해주세요.\n조건:\n길이: '+lmap[len]+'\n톤: '+tmap[tone]+'\nSEO키워드: '+(seoKw||topic)+'\n카테고리: '+(cat||'없음')+'\n태그: '+(tags||'없음')+'\n\n반드시 포함:\n1. 매력적인 제목 (첫 줄에 [제목] 형식)\n2. 도입부\n3. 본문 (소제목 ## 포함)\n4. 마무리\n5. 태그 목록 (#태그 형식)';
   if(genImg)prompt=prompt+'\n\n마지막에 [이미지프롬프트] 섹션에 영문 이미지 생성 프롬프트도 작성해주세요.';
   try{
-    var r=await callGeminiDirect(prompt,'네이버 블로그 전문 작가. SEO 최적화된 글 작성.');
-    var d=await r.json();if(d.error){alert('오류: '+d.error.message);return;}
+    var d=await callGeminiDirect(prompt,'네이버 블로그 전문 작가. SEO 최적화된 글 작성.');if(d.error){alert('오류: '+d.error);return;}
     var content=d.reply||'';
     var titleMatch=content.match(/\[제목\]\s*(.+)/);
     if(titleMatch)document.getElementById('blogTitle').value=titleMatch[1].trim();
@@ -2242,8 +2239,7 @@ async function checkSchedules(){
     var s=schedules[i];if(!s.active||s.time!==hm)continue;if(s.repeat==='weekday'&&(day===0||day===6))continue;
     schedLog('⚡ 자동 발행: '+s.topic);
     try{
-      var r=await callGeminiDirect(prompt,'네이버 블로그 전문 작가.');
-      var d=await r.json();
+      var d=await callGeminiDirect(prompt,'네이버 블로그 전문 작가.');
       if(d.reply){var tm=d.reply.match(/\[제목\]\s*(.+)/);var title=tm?tm[1].trim():s.topic;var content=d.reply.replace(/\[제목\][^\n]*/,'').trim();savedBlogs.unshift({id:Date.now(),title:title,content:content,category:'',tags:'',created:new Date().toLocaleString('ko-KR'),status:'auto'});localStorage.setItem('blogs',JSON.stringify(savedBlogs));schedLog('✅ 글 생성: '+title);if(naverTk){var ur=await fetch('/api/blog?action=upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:naverTk,blogId:naverBId,title:title,content:content,tags:'',publish:'now'})});var ud=await ur.json();schedLog(ud.ok||ud.postId?'📤 발행 완료':'❌ 발행 실패');}if(s.repeat==='once'){s.active=false;localStorage.setItem('schedules',JSON.stringify(schedules));}}
     }catch(e){schedLog('❌ 오류: '+e.message);}
   }
@@ -2252,7 +2248,7 @@ function schedLog(msg){var el=document.getElementById('schedLog');el.innerHTML='
 async function analyzeSEO(){
   var kw=document.getElementById('seoKeywordInput').value.trim();if(!kw){alert('키워드 입력!');return;}if(!gKey){alert('Gemini API 키 필요!');return;}
   document.getElementById('seoResult').textContent='분석 중...';
-  try{var prompt='"'+kw+'" 키워드 네이버 블로그 SEO 분석:\n1. 검색 의도\n2. 연관 키워드 10개\n3. 제목 작성 공식 3가지\n4. 본문 핵심 키워드\n5. 최적 글 구조';var r=await callGeminiDirect(prompt,'SEO 전문가');var d=await r.json();document.getElementById('seoResult').textContent=d.reply||(d&&d.error)||'분석 실패';}catch(e){document.getElementById('seoResult').textContent='오류: '+e.message;}
+  try{var prompt='"'+kw+'" 키워드 네이버 블로그 SEO 분석:\n1. 검색 의도\n2. 연관 키워드 10개\n3. 제목 작성 공식 3가지\n4. 본문 핵심 키워드\n5. 최적 글 구조';var d=await callGeminiDirect(prompt,'SEO 전문가');document.getElementById('seoResult').textContent=d.reply||(d&&d.error)||'분석 실패';}catch(e){document.getElementById('seoResult').textContent='오류: '+e.message;}
 }
 function runSeoCheck(){
   var title=document.getElementById('blogTitle').value;var content=document.getElementById('blogEditor').value;var seoKw=document.getElementById('blogSeoKeyword').value;
@@ -2333,8 +2329,7 @@ async function generateImagen(){
   try{
     // 1단계: 한국어 번역 (체크된 경우)
     if(doTranslate&&/[가-힣]/.test(promptText)){
-      var transR=await callGeminiDirect(prompt,'이미지 생성 프롬프트 전문가. 영어로만 출력.');
-      var transD=await transR.json();
+      var transD=await callGeminiDirect(prompt,'이미지 생성 프롬프트 전문가. 영어로만 출력.');
       if(transD.reply)finalPrompt=transD.reply.trim();
     }else if(style){
       finalPrompt=promptText+'. '+style;
@@ -2419,8 +2414,7 @@ async function generateVeo(type){
     var finalPrompt=promptText;
     if(gKey&&promptText&&/[가-힣]/.test(promptText)){
       try{
-        var tr=await callGeminiDirect(prompt,'영상 프롬프트 전문가. 영어로만.');
-        var trd=await tr.json();if(trd.reply)finalPrompt=trd.reply.trim();
+        var trd=await callGeminiDirect(prompt,'영상 프롬프트 전문가. 영어로만.');if(trd.reply)finalPrompt=trd.reply.trim();
       }catch(e){}
     }
 
@@ -2442,7 +2436,7 @@ async function generateVeo(type){
     document.getElementById(resultId).style.display='block';
 
     if(d.error){
-      document.getElementById(resultId).innerHTML='<div style="color:var(--up);font-size:12px;padding:12px;background:#FEF2F2;border-radius:10px;">❌ '+d.error.message+'<br><br><strong>해결방법:</strong><br>1. Project ID 확인<br>2. Access Token 재발급 (gcloud auth print-access-token)<br>3. Vertex AI API 활성화 확인</div>';
+      document.getElementById(resultId).innerHTML='<div style="color:var(--up);font-size:12px;padding:12px;background:#FEF2F2;border-radius:10px;">❌ '+d.error+'<br><br><strong>해결방법:</strong><br>1. Project ID 확인<br>2. Access Token 재발급 (gcloud auth print-access-token)<br>3. Vertex AI API 활성화 확인</div>';
       return;
     }
 
@@ -2462,7 +2456,7 @@ async function generateVeo(type){
             clearInterval(pollTimer);
             document.getElementById(progressId).style.display='none';
             document.getElementById(resultId).style.display='block';
-            if(pd.error){document.getElementById(resultId).innerHTML='<div style="color:var(--up);font-size:12px;padding:12px;">❌ '+pd.error.message+'</div>';return;}
+            if(pd.error){document.getElementById(resultId).innerHTML='<div style="color:var(--up);font-size:12px;padding:12px;">❌ '+pd.error+'</div>';return;}
             var videos=pd.response&&pd.response.videos;
             if(videos&&videos.length>0){
               var vidHtml=videos.map(function(v,i){
@@ -2558,8 +2552,7 @@ async function getMonthlyKeyword(){
       status.textContent='✅ 조회 완료 · AI 추가 분석 중...';
       var aiParts=['"'+kw+'" 키워드 네이버 검색 트렌드 분석 결과:','최고: '+max.toFixed(1)+', 최저: '+min.toFixed(1)+', 평균: '+avg.toFixed(1),'데이터 기간: '+labels[0]+' ~ '+labels[labels.length-1],'','다음을 분석해주세요:','1. 시즌성 패턴','2. 검색량 증감 원인','3. 향후 트렌드 예측','4. 마케팅 최적 시점','5. 핵심 인사이트 3가지'];var aiPrompt=aiParts.join('\n');
       try{
-        var ar=await callGeminiDirect(aiPrompt,'이커머스 마케팅 전문가.');
-        var ad=await ar.json();
+        var ad=await callGeminiDirect(aiPrompt,'이커머스 마케팅 전문가.');
         if(ad.reply){document.getElementById('monthlyAiResult').style.display='block';document.getElementById('monthlyAiResult').textContent='🤖 AI 분석:\n\n'+ad.reply;}
       }catch(e){}
       status.textContent='✅ 조회 & AI 분석 완료';
@@ -2572,8 +2565,7 @@ async function getMonthlyKeywordAI(kw,period,timeUnit){
   if(!gKey)return;
   var parts2=['"'+kw+'" 키워드 최근 '+period+'개월 분석:','1. 월별 검색량 트렌드 (상대적 수치로 표)','2. 시즌성 패턴','3. 급상승/급하락 시점','4. 향후 1개월 예측','5. 마케팅 최적 시점','6. 경쟁 키워드 5개'];var prompt=parts2.join('\n');
   try{
-    var r=await callGeminiDirect(prompt,'이커머스 마케팅 전문가. 실용적 분석.');
-    var d=await r.json();
+    var d=await callGeminiDirect(prompt,'이커머스 마케팅 전문가. 실용적 분석.');
     document.getElementById('monthlyAiResult').style.display='block';
     document.getElementById('monthlyAiResult').textContent=d.reply||'분석 실패';
     document.getElementById('monthlyStatus').textContent='✅ AI 분석 완료 (네이버 API 연동 시 실제 데이터 조회 가능)';
@@ -2593,8 +2585,7 @@ async function getShoppingKeyword(){
       // AI 폴백
       if(!gKey){document.getElementById('shoppingResult').textContent='❌ 네이버 API 키가 필요합니다.';return;}
       var aiP='"'+kw+'" 네이버 쇼핑 키워드 분석:\n1. 예상 월 검색량\n2. 경쟁 강도\n3. 평균 상품 가격대\n4. 상위 노출 상품 특징\n5. 광고 전략 추천';
-      var ar=await callGeminiDirect(aiP,'이커머스 전문가.');
-      var ad=await ar.json();
+      var ad=await callGeminiDirect(aiP,'이커머스 전문가.');
       document.getElementById('shoppingResult').textContent=ad.reply||'분석 실패';
       return;
     }
@@ -2617,8 +2608,7 @@ async function getShoppingKeyword(){
       result+='\n🤖 AI 분석 중...\n';
       document.getElementById('shoppingResult').textContent=result;
       var aiP2='네이버 쇼핑 "'+kw+'" 검색 결과 (총 '+total+'개 상품, 평균가 '+avgPrice+'원)를 바탕으로:\n1. 시장 경쟁 강도 분석\n2. 가격 전략 추천\n3. 상위 노출을 위한 상품명/이미지 전략\n4. 광고비 대비 효율 예측\n5. 틈새 키워드 추천 3개';
-      var ar2=await callGeminiDirect(aiP2,'이커머스 마케팅 전문가.');
-      var ad2=await ar2.json();
+      var ad2=await callGeminiDirect(aiP2,'이커머스 마케팅 전문가.');
       if(ad2.reply)result+='\n'+ad2.reply;
     }
     document.getElementById('shoppingResult').textContent=result;
@@ -2766,7 +2756,6 @@ function simulateAd(){
     var NL=String.fromCharCode(10);
     var arr=['광고 시뮬레이션 결과:','키워드: '+(kw||'미입력'),'월 예산: '+budget.toLocaleString()+'원','CPC: '+cpc+'원 | CTR: '+ctr+'% | CVR: '+cvr+'%','ROAS: '+roas+'% | ROI: '+roi+'%','순이익: '+netProfit.toLocaleString()+'원','','분석 요청:','1. 광고 효율 평가 (좋음/보통/나쁨)','2. CPC/CTR/CVR 개선 방안','3. ROAS 300% 달성 전략','4. 예산 조정 권고','5. A/B 테스트 추천'];
     callGeminiDirect(prompt,'네이버 쇼핑 광고 전문가. 실용적 분석.')
-      .then(function(r){return r.json();})
       .then(function(d){if(d.reply){var el=document.getElementById('adSimAiAnalysis');if(el)el.textContent='AI 광고 분석'+NL+NL+d.reply;}})
       .catch(function(){});
   }
@@ -3121,9 +3110,8 @@ async function runPfQuantDiag(){
       '3. 리밸런싱 핵심 제안 2가지',
       '4. 포트폴리오 종합 등급 (S/A/B/C/D)'
     ];
-    var r=await callGeminiDirect(prompt,'퀀트 포트폴리오 매니저. 간결하고 실용적.');
-    var d=await r.json();
-    resEl.textContent=d.reply||(d.error&&(d.error.message||JSON.stringify(d.error)))||'분석 실패';
+    var d=await callGeminiDirect(prompt,'퀀트 포트폴리오 매니저. 간결하고 실용적.');
+    resEl.textContent=d.reply||(d.error&&(d.error||JSON.stringify(d.error)))||'분석 실패';
   }catch(e){resEl.textContent='오류: '+e.message;}
   finally{btn.disabled=false;btn.textContent='🔬 내 포트폴리오 퀀트 진단';}
 }
@@ -3874,51 +3862,52 @@ async function getStockRec(isAuto){
 // ═══ Gemini 직접 호출 ═══
 async function callGeminiDirect(prompt, systemPrompt){
   if(!gKey){alert('AI채팅 탭에서 Gemini API 키를 먼저 저장해주세요!');return null;}
+  // 2026.04 실제 동작 확인된 모델 + 올바른 필드명
+  var attempts=[
+    {url:'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key='+gKey},
+    {url:'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key='+gKey},
+    {url:'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key='+gKey},
+    {url:'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-001:generateContent?key='+gKey},
+    {url:'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-002:generateContent?key='+gKey},
+  ];
+  // system_instruction 없이 contents에 포함 (호환성 최대화)
+  var sysText=systemPrompt?('[역할] '+systemPrompt+String.fromCharCode(10)+String.fromCharCode(10)):'';
   var body={
-    system_instruction:{parts:[{text:systemPrompt||''}]},
-    contents:[{role:'user',parts:[{text:prompt}]}],
+    contents:[{role:'user',parts:[{text:sysText+prompt}]}],
     generationConfig:{temperature:0.7,maxOutputTokens:2048}
   };
-  // 각 버전/모델 조합 순서대로 시도
-  var attempts=[
-    'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key='+gKey,
-    'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key='+gKey,
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key='+gKey,
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+gKey,
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+gKey,
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key='+gKey,
-  ];
   var errors=[];
   for(var i=0;i<attempts.length;i++){
     try{
-      var r=await fetch(attempts[i],{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      var r=await fetch(attempts[i].url,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(body)
+      });
       var d=await r.json();
       if(d.error){
-        var msg=d.error.message||'';
-        errors.push(attempts[i].split('/models/')[1].split(':')[0]+': '+msg.slice(0,60));
-        // 할당량 초과 → 즉시 반환
+        var msg=d.error||'';
+        var modelName=attempts[i].url.split('/models/')[1].split(':')[0];
+        errors.push(modelName+': '+msg.slice(0,80));
         if(msg.includes('RESOURCE_EXHAUSTED')||msg.includes('quota')||msg.includes('429')){
           return {error:'⚠️ API 사용량 한도 초과\n잠시 후 다시 시도하거나 내일 해주세요.\n(무료: 분당 15회 / 일 1,500회)'};
         }
-        // API 키 오류 → 즉시 반환
-        if(msg.includes('API_KEY_INVALID')||msg.includes('401')||msg.includes('invalid')){
+        if(msg.includes('API_KEY_INVALID')||msg.includes('401')){
           return {error:'❌ API 키 오류\nAI채팅 탭에서 Gemini API 키를 다시 확인해주세요.'};
         }
-        // 모델 없음 → 다음 시도
         continue;
       }
       var text=d.candidates&&d.candidates[0]&&d.candidates[0].content&&
                d.candidates[0].content.parts&&d.candidates[0].content.parts[0]&&
                d.candidates[0].content.parts[0].text;
       if(text)return {reply:text};
-      errors.push(attempts[i].split('/models/')[1].split(':')[0]+': empty response');
+      errors.push(attempts[i].url.split('/models/')[1].split(':')[0]+': empty');
     }catch(e){
-      errors.push('fetch error: '+e.message.slice(0,40));
+      errors.push('error: '+e.message.slice(0,40));
     }
   }
-  // 모든 시도 실패 - 상세 오류 표시
   var NL=String.fromCharCode(10);
-  return {error:'모든 모델 실패'+NL+NL+'시도 결과:'+NL+errors.join(NL)+NL+NL+'API 키가 유효하고 Gemini API가 활성화됐는지 확인해주세요.'+NL+'Google AI Studio: https://aistudio.google.com/apikey'};
+  return {error:'AI 연결 실패'+NL+'시도: '+errors.join(' / ')};
 }
 </script>
 </body>
