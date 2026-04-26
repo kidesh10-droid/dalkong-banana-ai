@@ -433,16 +433,16 @@ module.exports = async function handler(req, res) {
         const valid = results.filter(Boolean);
 
         // 스크리닝 조건
+        // 조건 완화 - 더 많은 종목 포함
         const candidates = valid.filter(s => {
-          return s.pct > -2 && s.pct < 15       // 급락/급등 제외
-            && s.volRatio >= 1.3                 // 거래량 증가
-            && s.rsi >= 40 && s.rsi <= 70        // RSI 과매수/과매도 제외
-            && s.price >= 3000 && s.price <= 300000
-            && s.ma5 >= s.ma20 * 0.98;           // 단기 > 장기MA (상승추세)
+          return s.price >= 2000 && s.price <= 500000  // 가격 범위 확대
+            && s.volRatio >= 0.5;                       // 거래량 조건 완화
         });
+        // 조건 만족 없으면 전체 사용
+        const finalCandidates = candidates.length >= 3 ? candidates : valid;
 
         // 스코어링
-        const scored = candidates.map(s => {
+        const scored = finalCandidates.map(s => {
           let score = 0;
           // 거래량 (30점)
           score += Math.min(s.volRatio * 10, 30);
@@ -525,7 +525,7 @@ module.exports = async function handler(req, res) {
           return pct >= 2 && pct <= 15 && price >= 3000 && price <= 300000 && volRatio >= 1.5;
         });
 
-        const scored = candidates.map(s => {
+        const scored = finalCandidates.map(s => {
           const pct      = parseFloat(s.prdy_ctrt || 0);
           const price    = parseInt(s.stck_prpr  || 0);
           const vol2     = parseInt(s.acml_vol   || 0);
