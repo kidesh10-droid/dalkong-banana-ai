@@ -1084,16 +1084,23 @@ id="sp-portfolio">
       </div>
     </div>
 
-    <!-- REST API 키 입력 -->
+    <!-- 액세스 토큰 직접 입력 -->
     <div style="margin-bottom:12px;">
-      <label style="font-size:11px;color:var(--mu);margin-bottom:5px;display:block;font-weight:500;">카카오 REST API 키</label>
-      <input id="kakaoRestKey" type="password" class="work-inp" placeholder="REST API 키 입력..." style="font-family:Space Mono,monospace;font-size:12px;"/>
-      <div style="font-size:10px;color:var(--mu);margin-top:4px;">developers.kakao.com → 달콩이 시황알림 앱 → 앱 키 → REST API 키</div>
+      <label style="font-size:11px;color:var(--mu);margin-bottom:5px;display:block;font-weight:500;">카카오 액세스 토큰</label>
+      <input id="kakaoAccessToken" type="password" class="work-inp" placeholder="액세스 토큰 붙여넣기..." style="font-family:Space Mono,monospace;font-size:11px;"/>
+      <div style="font-size:10px;color:var(--mu);margin-top:6px;background:var(--b3);border-radius:8px;padding:8px;line-height:1.7;">
+        📋 <b>토큰 발급 방법:</b><br>
+        1. <a href="https://developers.kakao.com/tool/rest-api/open/post/v2-api-talk-memo-default-send" target="_blank" style="color:var(--bl);">카카오 REST API 도구</a> 접속<br>
+        2. 왼쪽에서 <b>달콩이 시황알림</b> 선택<br>
+        3. <b>카카오 로그인</b> 버튼 클릭 → 로그인<br>
+        4. 상단 <b>액세스 토큰</b> 복사 후 위에 붙여넣기<br>
+        <span style="color:var(--up);font-size:9px;">※ 토큰은 12시간 유효 (만료시 재발급)</span>
+      </div>
     </div>
 
-    <!-- 카카오 로그인 버튼 -->
-    <button onclick="kakaoLogin()" id="kakaoLoginBtn" style="width:100%;padding:12px;border-radius:12px;border:none;background:#FEE500;color:#3A1D1D;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:10px;">
-      💬 카카오 로그인 & 권한 허용
+    <!-- 토큰 저장 버튼 -->
+    <button onclick="saveKakaoToken()" style="width:100%;padding:12px;border-radius:12px;border:none;background:#FEE500;color:#3A1D1D;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:10px;">
+      💬 토큰 저장 & 연결
     </button>
 
     <!-- 자동 전송 설정 -->
@@ -1180,21 +1187,7 @@ id="sp-portfolio">
     </div>
     <div style="display:flex;gap:9px;margin-top:18px;">
       <button onclick="closePfModal()" style="flex:1;padding:11px;border-radius:12px;border:1px solid var(--bd);background:transparent;color:var(--mu);font-size:13px;cursor:pointer;">취소</button>
-      <button onclick="savePfHolding()" style="flex:2;padding:11px;border-radius:12px;border:none;background:var(--tx);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
-    </div>
-  </div>
-</div>
-</div>
-<div class="sbar">
-  <div class="sdot off" id="sdot"></div>
-  <div class="stxt" id="stxt">Gemini 미연결</div>
-  <div style="margin-left:auto;display:flex;gap:12px;">
-    <div class="stxt" id="kisbar">KIS: 미연결</div>
-    <div class="stxt" id="modebar">모의투자</div>
-    <div class="stxt" id="lupd"></div>
-  </div>
-</div>
-<script>
+      <button onclick="savePfHolding()" style="flex:2;padding:11px;border-radius:12px;border:none;background:var(--tx);color:#fff;font-
 
 // ══ STATE ══
 var gKey=localStorage.getItem('gk')||'',gMod='gemini-1.5-flash';
@@ -4007,43 +4000,20 @@ function openKakaoModal(){
 }
 
 function kakaoLogin(){
-  var restKey = document.getElementById('kakaoRestKey').value.trim();
-  if(!restKey){alert('REST API 키를 입력해주세요!');return;}
-  localStorage.setItem('kakao_rest_key', restKey);
-  
-  // 카카오 OAuth 로그인
-  // Redirect URI로 돌아오면 code 파라미터로 토큰 교환
-  var redirectUri = encodeURIComponent('https://dalkong-banana-ai.vercel.app');
-  var scope = encodeURIComponent('talk_message');
-  var kakaoAuthUrl = 'https://kauth.kakao.com/oauth/authorize'
-    + '?client_id=' + restKey
-    + '&redirect_uri=' + redirectUri
-    + '&response_type=code'
-    + '&scope=' + scope;
-  
-  document.getElementById('kakaoModalStatus').textContent = '카카오 로그인 창을 여는 중...';
-  // 팝업으로 열기
-  var popup = window.open(kakaoAuthUrl, 'kakaoLogin', 'width=500,height=600,scrollbars=yes');
-  
-  // 팝업에서 리다이렉트 후 URL 파라미터 체크
-  var checkInterval = setInterval(function(){
-    try{
-      if(popup.closed){
-        clearInterval(checkInterval);
-        document.getElementById('kakaoModalStatus').textContent = '로그인 창이 닫혔어요. 코드를 직접 입력해주세요.';
-        // 수동 코드 입력 UI 표시
-        showKakaoCodeInput();
-        return;
-      }
-      var url = popup.location.href;
-      if(url.includes('code=')){
-        clearInterval(checkInterval);
-        popup.close();
-        var code = url.match(/code=([^&]+)/)[1];
-        exchangeKakaoCode(code, restKey);
-      }
-    }catch(e){}
-  }, 500);
+  // 구 방식 - 사용 안 함
+}
+function saveKakaoToken(){
+  var token = document.getElementById('kakaoAccessToken').value.trim();
+  if(!token){alert('액세스 토큰을 입력해주세요!');return;}
+  kakaoToken = token;
+  localStorage.setItem('kakao_token', token);
+  document.getElementById('kakaoStatusText').textContent = '✅ 카카오 연결됨';
+  document.getElementById('kakaoStatusDot').style.background = '#10B981';
+  document.getElementById('kakaoUserText').textContent = '메시지 전송 준비 완료';
+  document.getElementById('kakaoBadge').style.display = 'inline-flex';
+  document.getElementById('kakaoModalStatus').textContent = '✅ 연결 완료! 전송 테스트를 눌러보세요.';
+  document.getElementById('kakaoModalStatus').style.color = 'var(--dn)';
+  document.getElementById('kakaoBtn').style.background = 'rgba(254,229,0,.3)';
 }
 
 function showKakaoCodeInput(){
@@ -4265,6 +4235,17 @@ function scheduleKakaoAuto(){
 function updateKakaoNextTime(){
   var el = document.getElementById('kakaoNextTime');
   if(!el || !kakaoAutoEnabled) return;
+  var now = new Date();
+  var next = new Date();
+  next.setHours(7, 0, 0, 0);
+  if(now >= next) next.setDate(next.getDate() + 1);
+  while(next.getDay() === 0 || next.getDay() === 6) next.setDate(next.getDate() + 1);
+  var ms = next - now;
+  var h = Math.floor(ms / 3600000);
+  var min = Math.floor((ms % 3600000) / 60000);
+  el.textContent = '다음 전송: ' + h + '시간 ' + min + '분 후 (오전 7시)';
+}
+AutoEnabled) return;
   var now = new Date();
   var next = new Date();
   next.setHours(7, 0, 0, 0);
