@@ -18,6 +18,9 @@
     },
     "api/pf.js": {
       "maxDuration": 10
+    },
+    "api/kakao.js": {
+      "maxDuration": 15
     }
   },
   "headers": [
