@@ -359,6 +359,8 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
       <div style="display:flex;gap:6px;margin-left:auto;align-items:center;">
         <button onclick="toggleAutoMkt()" id="autoMktBtn" style="padding:5px 10px;border-radius:8px;border:1px solid rgba(255,225,53,.3);background:rgba(255,225,53,.08);color:#FFE135;font-size:10px;cursor:pointer;">⏰ 자동 시황 설정</button>
         <button onclick="toggleAutoRec()" id="autoRecBtn" style="padding:5px 10px;border-radius:8px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#EF4444;font-size:10px;cursor:pointer;">🎯 자동 추천 설정</button>
+        <button onclick="openKakaoModal()" id="kakaoBtn" style="padding:5px 10px;border-radius:8px;border:1px solid rgba(254,229,0,.4);background:rgba(254,229,0,.15);color:#3A1D1D;font-size:10px;cursor:pointer;font-weight:600;">💬 카카오톡 연동</button>
+        <div id="kakaoBadge" style="display:none;font-size:9px;padding:2px 8px;border-radius:100px;background:rgba(254,229,0,.2);color:#3A1D1D;border:1px solid rgba(254,229,0,.5);">💬 카카오 ON</div>
         <button onclick="requestMktNotifPermission()" style="padding:5px 10px;border-radius:8px;border:1px solid rgba(45,138,78,.3);background:rgba(45,138,78,.08);color:var(--dn);font-size:10px;cursor:pointer;">🔔 알림 허용</button>
       </div>
     </div>
@@ -1057,6 +1059,67 @@ id="sp-portfolio">
   </div>
 </div>
 
+
+<!-- 카카오톡 연동 모달 -->
+<div id="kakaoModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:700;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+  <div style="background:var(--b2);border-radius:20px;padding:24px;width:380px;max-width:92vw;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+    
+    <!-- 헤더 -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <div style="width:36px;height:36px;background:#FEE500;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;">💬</div>
+      <div>
+        <div style="font-size:15px;font-weight:700;color:var(--tx);">카카오톡 자동 시황 알림</div>
+        <div style="font-size:11px;color:var(--mu);">매일 오전 7시 해외 증시 시황을 카카오톡으로</div>
+      </div>
+    </div>
+
+    <!-- 연결 상태 -->
+    <div id="kakaoStatusWrap" style="background:var(--b3);border-radius:12px;padding:12px;margin-bottom:14px;border:1px solid var(--bd);">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--tx);" id="kakaoStatusText">연결되지 않음</div>
+          <div style="font-size:10px;color:var(--mu);" id="kakaoUserText">카카오 로그인 필요</div>
+        </div>
+        <div id="kakaoStatusDot" style="width:10px;height:10px;border-radius:50%;background:#ccc;"></div>
+      </div>
+    </div>
+
+    <!-- REST API 키 입력 -->
+    <div style="margin-bottom:12px;">
+      <label style="font-size:11px;color:var(--mu);margin-bottom:5px;display:block;font-weight:500;">카카오 REST API 키</label>
+      <input id="kakaoRestKey" type="password" class="work-inp" placeholder="REST API 키 입력..." style="font-family:Space Mono,monospace;font-size:12px;"/>
+      <div style="font-size:10px;color:var(--mu);margin-top:4px;">developers.kakao.com → 달콩이 시황알림 앱 → 앱 키 → REST API 키</div>
+    </div>
+
+    <!-- 카카오 로그인 버튼 -->
+    <button onclick="kakaoLogin()" id="kakaoLoginBtn" style="width:100%;padding:12px;border-radius:12px;border:none;background:#FEE500;color:#3A1D1D;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:10px;">
+      💬 카카오 로그인 & 권한 허용
+    </button>
+
+    <!-- 자동 전송 설정 -->
+    <div style="background:var(--b3);border-radius:12px;padding:12px;margin-bottom:12px;border:1px solid var(--bd);">
+      <div style="font-size:11px;font-weight:600;color:var(--tx);margin-bottom:8px;">⏰ 자동 전송 설정</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div>
+          <div style="font-size:11px;color:var(--tx);">매일 오전 7시 자동 전송</div>
+          <div style="font-size:10px;color:var(--mu);">평일 기준 · 브라우저가 열려있어야 함</div>
+        </div>
+        <button onclick="toggleKakaoAuto()" id="kakaoAutoBtn" style="padding:5px 14px;border-radius:8px;border:1px solid var(--bd);background:var(--b2);color:var(--mu);font-size:11px;cursor:pointer;">OFF</button>
+      </div>
+      <div style="font-size:10px;color:var(--mu);" id="kakaoNextTime"></div>
+    </div>
+
+    <!-- 즉시 전송 테스트 -->
+    <button onclick="sendKakaoNow()" id="kakaoSendBtn" style="width:100%;padding:10px;border-radius:12px;border:1px solid var(--bd);background:var(--b3);color:var(--tx);font-size:12px;font-weight:600;cursor:pointer;margin-bottom:8px;">
+      📤 지금 바로 시황 전송 테스트
+    </button>
+
+    <div id="kakaoModalStatus" style="font-size:11px;text-align:center;color:var(--mu);min-height:16px;margin-bottom:10px;"></div>
+
+    <button onclick="document.getElementById('kakaoModal').style.display='none'" style="width:100%;padding:10px;border-radius:12px;border:1px solid var(--bd);background:transparent;color:var(--mu);font-size:13px;cursor:pointer;">닫기</button>
+  </div>
+</div>
+
 <!-- 포트폴리오 기기 동기화 모달 -->
 <div id="pfSyncModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:600;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
   <div style="background:var(--b2);border-radius:20px;padding:24px;width:380px;max-width:92vw;box-shadow:0 20px 60px rgba(0,0,0,.2);">
@@ -1523,6 +1586,7 @@ var autoMktEnabled = localStorage.getItem('auto_mkt') === '1';
 // 초기화 시 자동 시황 세팅
 function initAutoMkt(){
   initAutoRec();
+  initKakao();
   if(autoMktEnabled){
     document.getElementById('autoMktBadge').style.display='inline-flex';
     document.getElementById('autoMktBtn').textContent='⏰ 자동 시황 ON';
@@ -3862,52 +3926,354 @@ async function getStockRec(isAuto){
 // ═══ Gemini 직접 호출 ═══
 async function callGeminiDirect(prompt, systemPrompt){
   if(!gKey){alert('AI채팅 탭에서 Gemini API 키를 먼저 저장해주세요!');return null;}
-  // 2026.04 실제 동작 확인된 모델 + 올바른 필드명
-  var attempts=[
-    {url:'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key='+gKey},
-    {url:'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key='+gKey},
-    {url:'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key='+gKey},
-    {url:'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-001:generateContent?key='+gKey},
-    {url:'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-002:generateContent?key='+gKey},
-  ];
-  // system_instruction 없이 contents에 포함 (호환성 최대화)
   var sysText=systemPrompt?('[역할] '+systemPrompt+String.fromCharCode(10)+String.fromCharCode(10)):'';
   var body={
     contents:[{role:'user',parts:[{text:sysText+prompt}]}],
     generationConfig:{temperature:0.7,maxOutputTokens:2048}
   };
+  var MODELS=[
+    {v:'v1beta',n:'gemini-2.5-flash-preview-05-20'},
+    {v:'v1beta',n:'gemini-2.5-flash-preview-04-17'},
+    {v:'v1beta',n:'gemini-2.0-flash-lite-001'},
+    {v:'v1',n:'gemini-1.5-flash-001'},
+    {v:'v1',n:'gemini-1.5-flash-002'},
+    {v:'v1',n:'gemini-1.5-pro-001'},
+  ];
   var errors=[];
-  for(var i=0;i<attempts.length;i++){
+  for(var i=0;i<MODELS.length;i++){
+    var url='https://generativelanguage.googleapis.com/'+MODELS[i].v+'/models/'+MODELS[i].n+':generateContent?key='+gKey;
     try{
-      var r=await fetch(attempts[i].url,{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(body)
-      });
-      var d=await r.json();
+      var resp=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      var d=await resp.json();
       if(d.error){
-        var msg=d.error||'';
-        var modelName=attempts[i].url.split('/models/')[1].split(':')[0];
-        errors.push(modelName+': '+msg.slice(0,80));
+        var msg=d.error.message||'';
+        errors.push(MODELS[i].n+': '+msg.slice(0,60));
         if(msg.includes('RESOURCE_EXHAUSTED')||msg.includes('quota')||msg.includes('429')){
-          return {error:'⚠️ API 사용량 한도 초과\n잠시 후 다시 시도하거나 내일 해주세요.\n(무료: 분당 15회 / 일 1,500회)'};
+          return {error:'⚠️ API 사용량 한도 초과'+String.fromCharCode(10)+'잠시 후 다시 시도해주세요. (무료: 분당 15회)'};
         }
         if(msg.includes('API_KEY_INVALID')||msg.includes('401')){
-          return {error:'❌ API 키 오류\nAI채팅 탭에서 Gemini API 키를 다시 확인해주세요.'};
+          return {error:'❌ API 키 오류. AI채팅 탭에서 다시 확인해주세요.'};
         }
         continue;
       }
       var text=d.candidates&&d.candidates[0]&&d.candidates[0].content&&
                d.candidates[0].content.parts&&d.candidates[0].content.parts[0]&&
                d.candidates[0].content.parts[0].text;
-      if(text)return {reply:text};
-      errors.push(attempts[i].url.split('/models/')[1].split(':')[0]+': empty');
+      if(text) return {reply:text};
+      errors.push(MODELS[i].n+': empty');
     }catch(e){
-      errors.push('error: '+e.message.slice(0,40));
+      errors.push(MODELS[i].n+': '+e.message.slice(0,30));
     }
   }
   var NL=String.fromCharCode(10);
-  return {error:'AI 연결 실패'+NL+'시도: '+errors.join(' / ')};
+  return {error:'AI 연결 실패'+NL+'시도 결과:'+NL+errors.join(NL)+NL+NL+'Gemini API가 활성화됐는지 확인: aistudio.google.com/apikey'};
+}
+
+// ═══════════════════════════════════════
+// 카카오톡 자동 시황 알림
+// ═══════════════════════════════════════
+var kakaoToken = localStorage.getItem('kakao_token') || '';
+var kakaoAutoEnabled = localStorage.getItem('kakao_auto') === '1';
+var kakaoAutoTimer = null;
+
+function initKakao(){
+  // 저장된 토큰 복원
+  if(kakaoToken){
+    document.getElementById('kakaoStatusText').textContent = '연결됨';
+    document.getElementById('kakaoStatusDot').style.background = '#10B981';
+    document.getElementById('kakaoUserText').textContent = '카카오 로그인 완료';
+    document.getElementById('kakaoBadge').style.display = 'inline-flex';
+    document.getElementById('kakaoBtn').style.background = 'rgba(254,229,0,.3)';
+  }
+  if(kakaoAutoEnabled) scheduleKakaoAuto();
+  updateKakaoNextTime();
+}
+
+function openKakaoModal(){
+  var savedKey = localStorage.getItem('kakao_rest_key') || '';
+  if(savedKey) document.getElementById('kakaoRestKey').value = savedKey;
+  // 상태 업데이트
+  if(kakaoToken){
+    document.getElementById('kakaoStatusText').textContent = '✅ 카카오 연결됨';
+    document.getElementById('kakaoStatusDot').style.background = '#10B981';
+    document.getElementById('kakaoUserText').textContent = '메시지 전송 준비 완료';
+  }
+  var autoBtn = document.getElementById('kakaoAutoBtn');
+  if(autoBtn) autoBtn.textContent = kakaoAutoEnabled ? 'ON' : 'OFF';
+  autoBtn.style.background = kakaoAutoEnabled ? '#FEE500' : 'var(--b2)';
+  autoBtn.style.color = kakaoAutoEnabled ? '#3A1D1D' : 'var(--mu)';
+  updateKakaoNextTime();
+  document.getElementById('kakaoModal').style.display = 'flex';
+}
+
+function kakaoLogin(){
+  var restKey = document.getElementById('kakaoRestKey').value.trim();
+  if(!restKey){alert('REST API 키를 입력해주세요!');return;}
+  localStorage.setItem('kakao_rest_key', restKey);
+  
+  // 카카오 OAuth 로그인
+  // Redirect URI로 돌아오면 code 파라미터로 토큰 교환
+  var redirectUri = encodeURIComponent('https://dalkong-banana-ai.vercel.app');
+  var scope = encodeURIComponent('talk_message');
+  var kakaoAuthUrl = 'https://kauth.kakao.com/oauth/authorize'
+    + '?client_id=' + restKey
+    + '&redirect_uri=' + redirectUri
+    + '&response_type=code'
+    + '&scope=' + scope;
+  
+  document.getElementById('kakaoModalStatus').textContent = '카카오 로그인 창을 여는 중...';
+  // 팝업으로 열기
+  var popup = window.open(kakaoAuthUrl, 'kakaoLogin', 'width=500,height=600,scrollbars=yes');
+  
+  // 팝업에서 리다이렉트 후 URL 파라미터 체크
+  var checkInterval = setInterval(function(){
+    try{
+      if(popup.closed){
+        clearInterval(checkInterval);
+        document.getElementById('kakaoModalStatus').textContent = '로그인 창이 닫혔어요. 코드를 직접 입력해주세요.';
+        // 수동 코드 입력 UI 표시
+        showKakaoCodeInput();
+        return;
+      }
+      var url = popup.location.href;
+      if(url.includes('code=')){
+        clearInterval(checkInterval);
+        popup.close();
+        var code = url.match(/code=([^&]+)/)[1];
+        exchangeKakaoCode(code, restKey);
+      }
+    }catch(e){}
+  }, 500);
+}
+
+function showKakaoCodeInput(){
+  var statusEl = document.getElementById('kakaoModalStatus');
+  statusEl.innerHTML = '카카오 로그인 후 주소창의 <b>code=</b> 값을 복사해서 입력:<br>'
+    + '<input id="kakaoCodeInput" style="width:100%;padding:6px;border:1px solid var(--bd);border-radius:6px;font-size:11px;margin-top:4px;" placeholder="code=XXXX 에서 XXXX 부분"/>'
+    + '<button onclick="manualKakaoCode()" style="width:100%;padding:6px;margin-top:4px;border:none;background:#FEE500;border-radius:6px;font-weight:600;cursor:pointer;">확인</button>';
+}
+
+function manualKakaoCode(){
+  var code = document.getElementById('kakaoCodeInput').value.trim();
+  var restKey = localStorage.getItem('kakao_rest_key');
+  if(!code || !restKey) return;
+  exchangeKakaoCode(code, restKey);
+}
+
+async function exchangeKakaoCode(code, restKey){
+  document.getElementById('kakaoModalStatus').textContent = '토큰 교환 중...';
+  try{
+    // Vercel API를 통해 토큰 교환 (CORS 우회)
+    var r = await fetch('/api/kakao?action=token', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        code: code,
+        restKey: restKey,
+        redirectUri: 'https://dalkong-banana-ai.vercel.app'
+      })
+    });
+    var d = await r.json();
+    if(d.access_token){
+      kakaoToken = d.access_token;
+      localStorage.setItem('kakao_token', kakaoToken);
+      if(d.refresh_token) localStorage.setItem('kakao_refresh', d.refresh_token);
+      
+      document.getElementById('kakaoStatusText').textContent = '✅ 카카오 연결됨';
+      document.getElementById('kakaoStatusDot').style.background = '#10B981';
+      document.getElementById('kakaoUserText').textContent = '메시지 전송 준비 완료';
+      document.getElementById('kakaoBadge').style.display = 'inline-flex';
+      document.getElementById('kakaoModalStatus').textContent = '✅ 연결 완료! 이제 시황을 전송할 수 있어요.';
+      document.getElementById('kakaoModalStatus').style.color = 'var(--dn)';
+    } else {
+      document.getElementById('kakaoModalStatus').textContent = '❌ ' + (d.error_description || d.error || '토큰 오류');
+      document.getElementById('kakaoModalStatus').style.color = 'var(--up)';
+    }
+  } catch(e) {
+    document.getElementById('kakaoModalStatus').textContent = '❌ 오류: ' + e.message;
+  }
+}
+
+// 카카오 메시지 전송
+async function sendKakaoMessage(text){
+  if(!kakaoToken){
+    document.getElementById('kakaoModalStatus').textContent = '카카오 로그인이 필요해요!';
+    return false;
+  }
+  try{
+    var r = await fetch('/api/kakao?action=send', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ token: kakaoToken, text: text })
+    });
+    var d = await r.json();
+    if(d.result_code === 0 || d.success){
+      return true;
+    }
+    // 토큰 만료 → 리프레시 시도
+    if(d.error_code === -401 || d.error === 'invalid_token'){
+      var refreshed = await refreshKakaoToken();
+      if(refreshed) return await sendKakaoMessage(text);
+    }
+    return false;
+  } catch(e) {
+    return false;
+  }
+}
+
+async function refreshKakaoToken(){
+  var refreshToken = localStorage.getItem('kakao_refresh');
+  var restKey = localStorage.getItem('kakao_rest_key');
+  if(!refreshToken || !restKey) return false;
+  try{
+    var r = await fetch('/api/kakao?action=refresh', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ refreshToken, restKey })
+    });
+    var d = await r.json();
+    if(d.access_token){
+      kakaoToken = d.access_token;
+      localStorage.setItem('kakao_token', kakaoToken);
+      if(d.refresh_token) localStorage.setItem('kakao_refresh', d.refresh_token);
+      return true;
+    }
+  } catch(e) {}
+  return false;
+}
+
+// 지금 바로 시황 전송
+async function sendKakaoNow(){
+  if(!kakaoToken){
+    document.getElementById('kakaoModalStatus').textContent = '먼저 카카오 로그인을 해주세요!';
+    document.getElementById('kakaoModalStatus').style.color = 'var(--up)';
+    return;
+  }
+  var btn = document.getElementById('kakaoSendBtn');
+  btn.disabled = true; btn.textContent = '시황 수집 중...';
+  document.getElementById('kakaoModalStatus').textContent = '해외 증시 데이터 수집 중...';
+
+  try{
+    var msg = await buildKakaoMessage();
+    btn.textContent = '카카오톡 전송 중...';
+    var ok = await sendKakaoMessage(msg);
+    if(ok){
+      document.getElementById('kakaoModalStatus').textContent = '✅ 카카오톡으로 전송됐어요!';
+      document.getElementById('kakaoModalStatus').style.color = 'var(--dn)';
+    } else {
+      document.getElementById('kakaoModalStatus').textContent = '❌ 전송 실패. 토큰을 다시 확인해주세요.';
+      document.getElementById('kakaoModalStatus').style.color = 'var(--up)';
+    }
+  } catch(e) {
+    document.getElementById('kakaoModalStatus').textContent = '❌ ' + e.message;
+  } finally {
+    btn.disabled = false; btn.textContent = '📤 지금 바로 시황 전송 테스트';
+  }
+}
+
+// 시황 메시지 빌드
+async function buildKakaoMessage(){
+  var NL = String.fromCharCode(10);
+  var today = new Date();
+  var dateStr = today.getFullYear() + '년 ' + (today.getMonth()+1) + '월 ' + today.getDate() + '일 '
+    + ['일','월','화','수','목','금','토'][today.getDay()] + '요일';
+  
+  var msg = '📊 달콩이 해외 증시 시황' + NL;
+  msg += dateStr + NL;
+  msg += '━━━━━━━━━━━━━━━━' + NL;
+
+  // 미국 증시 데이터
+  try{
+    var r = await fetch('/api/stock?action=market_us');
+    var d = await r.json();
+    if(d.results){
+      var nameMap = {'^GSPC':'S&P500','^IXIC':'NASDAQ','^DJI':'DOW','NVDA':'NVIDIA','TSLA':'Tesla','AAPL':'Apple','MSFT':'Microsoft','AMZN':'Amazon','META':'Meta','GOOGL':'Google'};
+      var indices = d.results.filter(function(x){ return ['^GSPC','^IXIC','^DJI'].includes(x.symbol) && !x.error; });
+      var stocks  = d.results.filter(function(x){ return !['^GSPC','^IXIC','^DJI'].includes(x.symbol) && !x.error; });
+      
+      msg += NL + '🇺🇸 미국 3대 지수' + NL;
+      indices.forEach(function(x){
+        var sign = x.change >= 0 ? '▲' : '▼';
+        var chg = Math.abs(x.change).toFixed(2);
+        msg += (nameMap[x.symbol]||x.symbol) + ': ' + (x.price?x.price.toLocaleString():'-') + ' ' + sign + chg + '%' + NL;
+      });
+      
+      msg += NL + '📈 주요 기술주' + NL;
+      stocks.slice(0,5).forEach(function(x){
+        var sign = x.change >= 0 ? '▲' : '▼';
+        var chg = Math.abs(x.change).toFixed(2);
+        msg += (nameMap[x.symbol]||x.symbol) + ': $' + (x.price?x.price.toFixed(2):'-') + ' ' + sign + chg + '%' + NL;
+      });
+    }
+  } catch(e) { msg += '시황 데이터 수집 실패' + NL; }
+
+  // 환율
+  try{
+    var rk = await fetch('/api/stock?action=market_kr');
+    var dk = await rk.json();
+    msg += NL + '💱 환율' + NL;
+    if(dk.usdkrw && dk.usdkrw.price) msg += 'USD/KRW: ' + Math.round(dk.usdkrw.price) + '원' + NL;
+    if(dk.btc && dk.btc.price) msg += 'BTC: ' + Math.round(dk.btc.price).toLocaleString() + '원' + NL;
+  } catch(e) {}
+
+  msg += NL + '━━━━━━━━━━━━━━━━' + NL;
+  msg += '⚠️ 투자 판단은 본인 책임입니다' + NL;
+  msg += '📱 달콩이 바나나 AI';
+  return msg;
+}
+
+// 자동 전송 설정
+function toggleKakaoAuto(){
+  kakaoAutoEnabled = !kakaoAutoEnabled;
+  localStorage.setItem('kakao_auto', kakaoAutoEnabled ? '1' : '0');
+  var btn = document.getElementById('kakaoAutoBtn');
+  btn.textContent = kakaoAutoEnabled ? 'ON' : 'OFF';
+  btn.style.background = kakaoAutoEnabled ? '#FEE500' : 'var(--b2)';
+  btn.style.color = kakaoAutoEnabled ? '#3A1D1D' : 'var(--mu)';
+  if(kakaoAutoEnabled){
+    scheduleKakaoAuto();
+    alert('✅ 자동 전송 ON!\n매일 오전 7시에 카카오톡으로 해외 시황이 전송돼요.\n브라우저가 열려있어야 합니다.');
+  } else {
+    if(kakaoAutoTimer){ clearTimeout(kakaoAutoTimer); kakaoAutoTimer = null; }
+    document.getElementById('kakaoNextTime').textContent = '';
+  }
+  updateKakaoNextTime();
+}
+
+function scheduleKakaoAuto(){
+  if(kakaoAutoTimer){ clearTimeout(kakaoAutoTimer); kakaoAutoTimer = null; }
+  if(!kakaoAutoEnabled) return;
+  var now = new Date();
+  var next = new Date();
+  next.setHours(7, 0, 0, 0);
+  if(now >= next) next.setDate(next.getDate() + 1);
+  // 주말 건너뜀
+  while(next.getDay() === 0 || next.getDay() === 6) next.setDate(next.getDate() + 1);
+  var ms = next - now;
+  kakaoAutoTimer = setTimeout(async function(){
+    // 자동 전송 실행
+    if(kakaoToken){
+      var msg = await buildKakaoMessage();
+      var ok = await sendKakaoMessage(msg);
+      if(ok) showMktNotification('💬 카카오톡으로 오늘 시황을 전송했어요!');
+    }
+    scheduleKakaoAuto(); // 다음 날 재스케줄
+  }, ms);
+  updateKakaoNextTime();
+}
+
+function updateKakaoNextTime(){
+  var el = document.getElementById('kakaoNextTime');
+  if(!el || !kakaoAutoEnabled) return;
+  var now = new Date();
+  var next = new Date();
+  next.setHours(7, 0, 0, 0);
+  if(now >= next) next.setDate(next.getDate() + 1);
+  while(next.getDay() === 0 || next.getDay() === 6) next.setDate(next.getDate() + 1);
+  var ms = next - now;
+  var h = Math.floor(ms / 3600000);
+  var min = Math.floor((ms % 3600000) / 60000);
+  el.textContent = '다음 전송: ' + h + '시간 ' + min + '분 후 (오전 7시)';
 }
 </script>
 </body>
