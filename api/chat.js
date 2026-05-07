@@ -23,13 +23,9 @@ module.exports = async function handler(req, res) {
 
     // 2026.04 실제 동작 모델 목록
     const MODELS = [
-      { ver: 'v1beta', name: 'gemini-2.5-flash-preview-05-20' },
-      { ver: 'v1beta', name: 'gemini-2.5-pro-preview-05-06' },
-      { ver: 'v1beta', name: 'gemini-2.0-flash-lite-001' },
-      { ver: 'v1',     name: 'gemini-1.5-flash-001' },
-      { ver: 'v1',     name: 'gemini-1.5-flash-002' },
-      { ver: 'v1',     name: 'gemini-1.5-pro-001' },
-      { ver: 'v1',     name: 'gemini-1.5-pro-002' },
+      { ver: 'v1beta', name: 'gemini-2.0-flash' },
+      { ver: 'v1beta', name: 'gemini-1.5-flash' },
+      { ver: 'v1beta', name: 'gemini-1.5-pro' },
     ];
 
     const body = {
@@ -41,7 +37,7 @@ module.exports = async function handler(req, res) {
 
     for (const { ver, name } of MODELS) {
       try {
-        const url = `https://generativelanguage.googleapis.com/${ver}/models/${name}:generateContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${name}:generateContent?key=${apiKey}`;
         const r = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
