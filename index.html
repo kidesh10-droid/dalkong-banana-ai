@@ -1204,7 +1204,7 @@ id="sp-portfolio">
 <script>
 
 // ══ STATE ══
-var gKey=localStorage.getItem('gk')||'',gMod='gemini-1.5-flash';
+var gKey=localStorage.getItem('gk')||'',gMod='gemini-2.0-flash';
 var chatH=[],isLoad=false,selImg=null;
 var kisToken=null,trMode='mock';
 var acctNo=localStorage.getItem('ka')||'',acctProd=localStorage.getItem('kp')||'01';
@@ -3939,12 +3939,9 @@ async function callGeminiDirect(prompt, systemPrompt){
     generationConfig:{temperature:0.7,maxOutputTokens:2048}
   };
   var MODELS=[
-    {v:'v1beta',n:'gemini-2.5-flash-preview-05-20'},
-    {v:'v1beta',n:'gemini-2.5-flash-preview-04-17'},
-    {v:'v1beta',n:'gemini-2.0-flash-lite-001'},
-    {v:'v1',n:'gemini-1.5-flash-001'},
-    {v:'v1',n:'gemini-1.5-flash-002'},
-    {v:'v1',n:'gemini-1.5-pro-001'},
+    {v:'v1beta',n:'gemini-2.0-flash'},
+    {v:'v1beta',n:'gemini-1.5-flash'},
+    {v:'v1beta',n:'gemini-1.5-pro'},
   ];
   var errors=[];
   for(var i=0;i<MODELS.length;i++){
@@ -3984,13 +3981,17 @@ var kakaoAutoEnabled = localStorage.getItem('kakao_auto') === '1';
 var kakaoAutoTimer = null;
 
 function initKakao(){
-  // 저장된 토큰 복원
   if(kakaoToken){
-    document.getElementById('kakaoStatusText').textContent = '연결됨';
-    document.getElementById('kakaoStatusDot').style.background = '#10B981';
-    document.getElementById('kakaoUserText').textContent = '카카오 로그인 완료';
-    document.getElementById('kakaoBadge').style.display = 'inline-flex';
-    document.getElementById('kakaoBtn').style.background = 'rgba(254,229,0,.3)';
+    var st=document.getElementById('kakaoStatusText');
+    var sd=document.getElementById('kakaoStatusDot');
+    var ut=document.getElementById('kakaoUserText');
+    var bd=document.getElementById('kakaoBadge');
+    var kb=document.getElementById('kakaoBtn');
+    if(st) st.textContent='연결됨';
+    if(sd) sd.style.background='#10B981';
+    if(ut) ut.textContent='카카오 로그인 완료';
+    if(bd) bd.style.display='inline-flex';
+    if(kb) kb.style.background='rgba(254,229,0,.3)';
   }
   if(kakaoAutoEnabled) scheduleKakaoAuto();
   updateKakaoNextTime();
