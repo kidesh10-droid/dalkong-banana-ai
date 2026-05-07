@@ -23,9 +23,11 @@ module.exports = async function handler(req, res) {
 
     // 2026.04 실제 동작 모델 목록
     const MODELS = [
-      { ver: 'v1beta', name: 'gemini-2.0-flash' },
-      { ver: 'v1beta', name: 'gemini-1.5-flash' },
-      { ver: 'v1beta', name: 'gemini-1.5-pro' },
+      { name: 'gemini-pro' },
+      { name: 'gemini-1.5-flash' },
+      { name: 'gemini-1.5-pro' },
+      { name: 'gemini-2.0-flash-lite' },
+      { name: 'gemini-2.0-flash' },
     ];
 
     const body = {
@@ -35,7 +37,8 @@ module.exports = async function handler(req, res) {
 
     const errors = [];
 
-    for (const { ver, name } of MODELS) {
+    for (const { name } of MODELS) {
+      const ver = 'v1beta';
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${name}:generateContent?key=${apiKey}`;
         const r = await fetch(url, {
