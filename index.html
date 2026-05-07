@@ -1459,6 +1459,7 @@ async function saveAcct(){
 async function initKIS(){
   var kstat=document.getElementById('kstat');
   var kbtn=document.getElementById('kbtn');
+  if(!kbtn||!kstat){alert('KIS 연결 버튼을 찾을 수 없어요. 주식 탭에서 실행해주세요.');return;}
   kbtn.textContent='연결중...';
   kstat.textContent='⏳ 요청 중...';
   kstat.style.color='var(--mu)';
@@ -3938,39 +3939,49 @@ async function callGeminiDirect(prompt, systemPrompt){
     contents:[{role:'user',parts:[{text:sysText+prompt}]}],
     generationConfig:{temperature:0.7,maxOutputTokens:2048}
   };
+  // 2026년 5월 현재 실제 동작하는 모델 목록
   var MODELS=[
-    {v:'v1beta',n:'gemini-2.0-flash'},
-    {v:'v1beta',n:'gemini-1.5-flash'},
-    {v:'v1beta',n:'gemini-1.5-pro'},
+    'gemini-pro',
+    'gemini-1.5-flash',
+    'gemini-1.5-pro',
+    'gemini-2.0-flash-lite',
+    'gemini-2.0-flash',
   ];
   var errors=[];
   for(var i=0;i<MODELS.length;i++){
-    var url='https://generativelanguage.googleapis.com/'+MODELS[i].v+'/models/'+MODELS[i].n+':generateContent?key='+gKey;
-    try{
-      var resp=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-      var d=await resp.json();
-      if(d.error){
-        var msg=d.error.message||'';
-        errors.push(MODELS[i].n+': '+msg.slice(0,60));
-        if(msg.includes('RESOURCE_EXHAUSTED')||msg.includes('quota')||msg.includes('429')){
-          return {error:'⚠️ API 사용량 한도 초과'+String.fromCharCode(10)+'잠시 후 다시 시도해주세요. (무료: 분당 15회)'};
+    var modelName=MODELS[i];
+    // v1beta와 v1 모두 시도
+    var urls=[
+      'https://generativelanguage.googleapis.com/v1beta/models/'+modelName+':generateContent?key='+gKey,
+      'https://generativelanguage.googleapis.com/v1/models/'+modelName+':generateContent?key='+gKey,
+    ];
+    for(var j=0;j<urls.length;j++){
+      try{
+        var resp=await fetch(urls[j],{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        var d=await resp.json();
+        if(d.error){
+          var msg=d.error.message||'';
+          if(msg.includes('RESOURCE_EXHAUSTED')||msg.includes('quota')||msg.includes('429')){
+            return {error:'⚠️ API 사용량 한도 초과\n잠시 후 다시 시도해주세요.'};
+          }
+          if(msg.includes('API_KEY_INVALID')||msg.includes('401')||msg.includes('invalid')){
+            return {error:'❌ API 키가 올바르지 않아요.\nAI채팅 탭에서 다시 확인해주세요.'};
+          }
+          // 모델 없음 → 다음 시도
+          errors.push(modelName+'('+['v1beta','v1'][j]+'): '+msg.slice(0,50));
+          break; // 같은 모델 다른 버전 시도 불필요
         }
-        if(msg.includes('API_KEY_INVALID')||msg.includes('401')){
-          return {error:'❌ API 키 오류. AI채팅 탭에서 다시 확인해주세요.'};
-        }
-        continue;
+        var text=d.candidates&&d.candidates[0]&&d.candidates[0].content&&
+                 d.candidates[0].content.parts&&d.candidates[0].content.parts[0]&&
+                 d.candidates[0].content.parts[0].text;
+        if(text) return {reply:text};
+      }catch(e){
+        errors.push(modelName+': '+e.message.slice(0,30));
       }
-      var text=d.candidates&&d.candidates[0]&&d.candidates[0].content&&
-               d.candidates[0].content.parts&&d.candidates[0].content.parts[0]&&
-               d.candidates[0].content.parts[0].text;
-      if(text) return {reply:text};
-      errors.push(MODELS[i].n+': empty');
-    }catch(e){
-      errors.push(MODELS[i].n+': '+e.message.slice(0,30));
     }
   }
   var NL=String.fromCharCode(10);
-  return {error:'AI 연결 실패'+NL+'시도 결과:'+NL+errors.join(NL)+NL+NL+'Gemini API가 활성화됐는지 확인: aistudio.google.com/apikey'};
+  return {error:'AI 연결 실패'+NL+'시도 결과:'+NL+errors.join(NL)+NL+NL+'aistudio.google.com/apikey 에서 API 키 확인'};
 }
 
 // ═══════════════════════════════════════
