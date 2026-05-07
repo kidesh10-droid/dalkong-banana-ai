@@ -1196,7 +1196,12 @@ id="sp-portfolio">
     </div>
     <div style="display:flex;gap:9px;margin-top:18px;">
       <button onclick="closePfModal()" style="flex:1;padding:11px;border-radius:12px;border:1px solid var(--bd);background:transparent;color:var(--mu);font-size:13px;cursor:pointer;">취소</button>
-      <button onclick="savePfHolding()" style="flex:2;padding:11px;border-radius:12px;border:none;background:var(--tx);color:#fff;font-
+      <button onclick="savePfHolding()" style="flex:2;padding:11px;border-radius:12px;border:none;background:var(--tx);color:#fff;font-weight:700;cursor:pointer;">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
 
 // ══ STATE ══
 var gKey=localStorage.getItem('gk')||'',gMod='gemini-1.5-flash';
@@ -4244,17 +4249,6 @@ function scheduleKakaoAuto(){
 function updateKakaoNextTime(){
   var el = document.getElementById('kakaoNextTime');
   if(!el || !kakaoAutoEnabled) return;
-  var now = new Date();
-  var next = new Date();
-  next.setHours(7, 0, 0, 0);
-  if(now >= next) next.setDate(next.getDate() + 1);
-  while(next.getDay() === 0 || next.getDay() === 6) next.setDate(next.getDate() + 1);
-  var ms = next - now;
-  var h = Math.floor(ms / 3600000);
-  var min = Math.floor((ms % 3600000) / 60000);
-  el.textContent = '다음 전송: ' + h + '시간 ' + min + '분 후 (오전 7시)';
-}
-AutoEnabled) return;
   var now = new Date();
   var next = new Date();
   next.setHours(7, 0, 0, 0);
